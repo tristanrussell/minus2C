@@ -86,6 +86,7 @@ dkms.conf
 ### MMC ###
 *.mmo
 mmc-sandbox/
+mips-sandbox/
 mycc
 .deps
 C.output
