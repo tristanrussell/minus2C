@@ -41,6 +41,12 @@ TAC *new_if_tac(TAC*, TACLABEL*);
 
 TAC *new_goto_tac(TACLABEL*);
 
+TAC *new_proc_tac(TOKEN*, int);
+
+TAC *new_block_tac(int);
+
+TAC *new_call_tac(TOKEN*, int);
+
 TAC *new_line_tac(int, TOKEN*, TOKEN*, TOKEN*);
 
 TOKEN *new_temp();

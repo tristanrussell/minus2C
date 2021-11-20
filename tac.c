@@ -40,6 +40,32 @@ TAC *new_goto_tac(TACLABEL *label)
     return gotoTac;
 }
 
+TAC *new_proc_tac(TOKEN *name, int arity)
+{
+    TAC *procTac = (TAC*)malloc(sizeof(TAC));
+    procTac->op = tac_proc;
+    procTac->args.proc.name = name;
+    procTac->args.proc.arity = arity;
+    return procTac;
+}
+
+TAC *new_block_tac(int nvars)
+{
+    TAC *blockTac = (TAC*)malloc(sizeof(TAC));
+    blockTac->op = tac_block;
+    blockTac->args.block.nvars = nvars;
+    return blockTac;
+}
+
+TAC *new_call_tac(TOKEN *name, int arity)
+{
+    TAC *callTac = (TAC*)malloc(sizeof(TAC));
+    callTac->op = tac_call;
+    callTac->args.proc.name = name;
+    callTac->args.proc.arity = arity;
+    return callTac;
+}
+
 TAC* new_line_tac(int op, TOKEN* src1, TOKEN* src2, TOKEN* dst)
 {
     TAC* ans = (TAC*)malloc(sizeof(TAC));

@@ -26,7 +26,6 @@ MC *mcg_compute_if(TAC *i, MC *prev)
             sprintf(insn, "slt $at $%s, $%s", i->args.line.src1->lexeme, i->args.line.src2->lexeme);
             this = new_mci(insn);
             this->next = prev;
-            prev = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "beq $at $zero %s", label);
             next = new_mci(insn);
@@ -36,7 +35,6 @@ MC *mcg_compute_if(TAC *i, MC *prev)
             sprintf(insn, "slt $at $%s, $%s", i->args.line.src2->lexeme, i->args.line.src1->lexeme);
             this = new_mci(insn);
             this->next = prev;
-            prev = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "bne $at $zero %s", label);
             next = new_mci(insn);
@@ -46,7 +44,6 @@ MC *mcg_compute_if(TAC *i, MC *prev)
             sprintf(insn, "slt $at $%s, $%s", i->args.line.src2->lexeme, i->args.line.src1->lexeme);
             this = new_mci(insn);
             this->next = prev;
-            prev = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "beq $at $zero %s", label);
             next = new_mci(insn);
@@ -56,7 +53,6 @@ MC *mcg_compute_if(TAC *i, MC *prev)
             sprintf(insn, "slt $at $%s, $%s", i->args.line.src1->lexeme, i->args.line.src2->lexeme);
             this = new_mci(insn);
             this->next = prev;
-            prev = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "bne $at $zero %s", label);
             next = new_mci(insn);

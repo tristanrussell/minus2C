@@ -128,6 +128,32 @@ TAC *tac_compute_while(NODE *ast)
     return labelEnd;
 }
 
+TAC *tac_compute_closure(NODE *ast)
+{
+    if (ast->type != 'D') return NULL;
+
+    NODE *dec = ast->left;
+    NODE *code = ast->right;
+
+    if (dec->type != 'd' || code == NULL) {
+        printf("Error in function declaration.");
+        exit(EXIT_FAILURE);
+    }
+
+//    TAC *type = mmc_icg(dec->left);
+
+    NODE *func = dec->right;
+
+    if (func->type != 'F') {
+        printf("Error in function declaration.");
+        exit(EXIT_FAILURE);
+    }
+
+    TAC *name = mmc_icg(func->left);
+
+    TAC *proc = new_proc_tac()
+}
+
 TAC* mmc_icg(NODE* ast)
 {
     TOKEN *t = (TOKEN*)ast;
