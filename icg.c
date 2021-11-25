@@ -5,6 +5,21 @@
 #include "C.tab.h"
 #include "token.h"
 
+int countArgs(NODE *ast)
+{
+    int count = 0;
+    switch (ast->type) {
+        case ';':
+        case ',':
+            count += countArgs(ast->left);
+            count += countArgs(ast->right);
+            return count;
+        case '~':
+            return 1;
+        default:
+            return 0;
+    }
+}
 
 // Need to add blocks
 TAC *tac_compute_if(NODE *ast)
@@ -43,25 +58,50 @@ TAC *tac_compute_if(NODE *ast)
 
     if (ast->right->type == ELSE) {
         TAC *thenLeaf = mmc_icg(ast->right->left);
+        int countThen = countArgs(ast->right->left);
+        TAC *blockThenStart = new_block_tac(countThen);
+        TAC *blockThenEnd = new_blockend_tac();
+
         TAC *elseLeaf = mmc_icg(ast->right->right);
+        int countElse = countArgs(ast->right->right);
+        TAC *blockElseStart = new_block_tac(countElse);
+        TAC *blockElseEnd = new_blockend_tac();
+
         TAC *labelElse = new_label_tac();
         TAC *labelEnd = new_label_tac();
+
         TAC *ifTac = new_if_tac(leftLeaf, &labelElse->args.taclabel);
         ifTac->next = leftLeaf;
-        prepend_tac(ifTac, thenLeaf);
+        blockThenStart->next = ifTac;
+        prepend_tac(blockThenStart, thenLeaf);
+
         TAC *gotoEnd = new_goto_tac(&labelEnd->args.taclabel);
         gotoEnd->next = thenLeaf;
-        labelElse->next = gotoEnd;
-        prepend_tac(labelElse, elseLeaf);
-        labelEnd->next = elseLeaf;
+        blockThenEnd->next = gotoEnd;
+
+        labelElse->next = blockThenEnd;
+        blockElseStart->next = labelElse;
+
+        prepend_tac(blockElseStart, elseLeaf);
+        blockElseEnd->next = elseLeaf;
+
+        labelEnd->next = blockElseEnd;
         return labelEnd;
     } else {
         TAC *rightLeaf = mmc_icg(ast->right);
+        int count = countArgs(ast->right);
+        TAC *blockStart = new_block_tac(count);
+        TAC *blockEnd = new_blockend_tac();
+
         TAC *label = new_label_tac();
+
         TAC *ifTac = new_if_tac(leftLeaf, &label->args.taclabel);
         ifTac->next = leftLeaf;
-        prepend_tac(ifTac, rightLeaf);
-        label->next = rightLeaf;
+        blockStart->next = ifTac;
+        prepend_tac(blockStart, rightLeaf);
+
+        blockEnd->next = rightLeaf;
+        label->next = blockEnd;
         return label;
     }
 }
@@ -107,6 +147,10 @@ TAC *tac_compute_while(NODE *ast)
     TAC *ifTac = new_if_tac(leftLeaf, &labelEnd->args.taclabel);
     TAC *gotoTac = new_goto_tac(&labelStart->args.taclabel);
 
+    int count = countArgs(ast->right);
+    TAC *blockStart = new_block_tac(count);
+    TAC *blockEnd = new_blockend_tac();
+
     TAC *r = rightLeaf;
     while (r != NULL) {
         if (r->op == tac_continue) {
@@ -122,25 +166,13 @@ TAC *tac_compute_while(NODE *ast)
 
     prepend_tac(labelStart, leftLeaf);
     ifTac->next = leftLeaf;
-    prepend_tac(ifTac, rightLeaf);
-    gotoTac->next = rightLeaf;
-    labelEnd->next = gotoTac;
-    return labelEnd;
-}
+    blockStart->next = ifTac;
+    prepend_tac(blockStart, rightLeaf);
 
-int countArgs(NODE *ast)
-{
-    int count = 0;
-    switch (ast->type) {
-        case ',':
-            count += countArgs(ast->left);
-            count += countArgs(ast->right);
-            return count;
-        case '~':
-            return 1;
-        default:
-            return 0;
-    }
+    gotoTac->next = rightLeaf;
+    blockEnd->next = gotoTac;
+    labelEnd->next = blockEnd;
+    return labelEnd;
 }
 
 TAC *tac_compute_closure(NODE *ast)
