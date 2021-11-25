@@ -371,14 +371,14 @@ int main(int argc, char** argv)
     print_tree(tree);
     TAC *tacSeq = mmc_icg(tree);
     printf("\n");
-    mmc_print_ic(tacSeq);
+    mmc_print_ic(tacSeq, 0);
     printf("\n");
     BB *bbSeq = bb_create(tacSeq);
     bb_print(bbSeq);
-    printf("\n");
-    MC *mcSeq = mmc_mcg_bb(bbSeq);
-    printf("\n");
-    mmc_print_mc(mcSeq);
+//    printf("\n");
+//    MC *mcSeq = mmc_mcg_bb(bbSeq);
+//    printf("\n");
+//    mmc_print_mc(mcSeq);
 
 //    NODE *leaf = calc_leaf(tree);
 //    if (leaf) {

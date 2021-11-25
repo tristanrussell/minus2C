@@ -128,12 +128,27 @@ TAC *tac_compute_while(NODE *ast)
     return labelEnd;
 }
 
+int countArgs(NODE *ast)
+{
+    int count = 0;
+    switch (ast->type) {
+        case ',':
+            count += countArgs(ast->left);
+            count += countArgs(ast->right);
+            return count;
+        case '~':
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 TAC *tac_compute_closure(NODE *ast)
 {
     if (ast->type != 'D') return NULL;
 
     NODE *dec = ast->left;
-    NODE *code = ast->right;
+    TAC *code = mmc_icg(ast->right);
 
     if (dec->type != 'd' || code == NULL) {
         printf("Error in function declaration.");
@@ -151,7 +166,15 @@ TAC *tac_compute_closure(NODE *ast)
 
     TAC *name = mmc_icg(func->left);
 
-    TAC *proc = new_proc_tac()
+    int numArgs = countArgs(func->right);
+
+    TAC *proc = new_proc_tac(name->args.line.src1, numArgs);
+    TAC *endproc = new_procend_tac();
+
+    prepend_tac(proc, code);
+    endproc->next = code;
+
+    return endproc;
 }
 
 TAC* mmc_icg(NODE* ast)
@@ -237,7 +260,7 @@ TAC* mmc_icg(NODE* ast)
             return ret;
         case 'D':
             printf("D\n");
-            return mmc_icg(ast->right);
+            return tac_compute_closure(ast);
         case '~':
             printf("~\n");
             leftLeaf = mmc_icg(ast->left);
@@ -288,6 +311,12 @@ TAC* mmc_icg(NODE* ast)
             ret = new_line_tac(tac_ne, leftLeaf->args.line.dst, rightLeaf->args.line.dst, new_temp());
             ret->next = rightLeaf;
             return ret;
+        case INT:
+            printf("int\n");
+            return NULL;
+        case VOID:
+            printf("void\n");
+            return NULL;
         case LEAF:
             printf("leaf\n");
             return mmc_icg(ast->left);
@@ -363,7 +392,7 @@ void bb_print(BB* bb)
 
     printf("BASIC BLOCK START\n");
 
-    mmc_print_ic(bb->leader);
+    mmc_print_ic(bb->leader, 2);
 
     printf("BASIC BLOCK END\n");
 }

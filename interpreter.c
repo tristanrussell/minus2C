@@ -69,7 +69,7 @@ VALUE *create_closure(NODE *tree, FRAME *frame)
     } else return declare_closure(name, frame, code, ids, type->type);
 }
 
-VALUE * lexical_call_method(TOKEN *name, NODE *args, FRAME *env)
+VALUE *lexical_call_method(TOKEN *name, NODE *args, FRAME *env)
 {
     VALUE *v = lookup_name(name, env);
     printf("Found:%s\n", name->lexeme);

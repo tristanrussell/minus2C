@@ -8,7 +8,7 @@
 int reg_count = 0;
 int label_count = 1;
 
-char* tac_ops[] = {"NOOP","LOAD","LOAD","STORE","MOD","MULTIPLY","ADD","SUBTRACT","DIVIDE","RETURN","PROC","BLOCK","CALL","LABEL","IF","GOTO","EQ","NE","GTEQ","GT","LTEQ","LT","BREAK","CONTINUE"};
+char* tac_ops[] = {"NOOP","LOAD","LOAD","STORE","MOD","MULTIPLY","ADD","SUBTRACT","DIVIDE","RETURN","PROC","ENDPROC","BLOCK","ENDBLOCK","CALL","LABEL","IF","GOTO","EQ","NE","GTEQ","GT","LTEQ","LT","BREAK","CONTINUE"};
 
 TAC *new_label_tac()
 {
@@ -49,12 +49,26 @@ TAC *new_proc_tac(TOKEN *name, int arity)
     return procTac;
 }
 
+TAC *new_procend_tac()
+{
+    TAC *endTac = (TAC*)malloc(sizeof(TAC));
+    endTac->op = tac_endproc;
+    return endTac;
+}
+
 TAC *new_block_tac(int nvars)
 {
     TAC *blockTac = (TAC*)malloc(sizeof(TAC));
     blockTac->op = tac_block;
     blockTac->args.block.nvars = nvars;
     return blockTac;
+}
+
+TAC *new_blockend_tac()
+{
+    TAC *endTac = (TAC*)malloc(sizeof(TAC));
+    endTac->op = tac_endblock;
+    return endTac;
 }
 
 TAC *new_call_tac(TOKEN *name, int arity)
@@ -96,9 +110,12 @@ TAC *prepend_tac(TAC *pre, TAC *post) {
     return post;
 }
 
-void mmc_print_ic(TAC* i)
+void mmc_print_ic(TAC* i, int ind)
 {
-    if (i->next != NULL) mmc_print_ic(i->next);
+    if (i->next != NULL) mmc_print_ic(i->next, ind);
+    for (int j = 0; j < ind; j++) {
+        printf(" ");
+    }
     switch(i->op) {
         case tac_load_const:
             printf("%s %s, %d\n",
@@ -127,6 +144,23 @@ void mmc_print_ic(TAC* i)
                 printf("%s %s\n",
                        tac_ops[i->op],
                        i->args.line.src1->lexeme);
+            break;
+        case tac_proc:
+            printf("%s %s, %d\n",
+                   tac_ops[i->op],
+                   i->args.proc.name->lexeme,
+                   i->args.proc.arity);
+            break;
+        case tac_endproc:
+            printf("%s\n", tac_ops[i->op]);
+            break;
+        case tac_block:
+            printf("%s %d\n",
+                   tac_ops[i->op],
+                   i->args.block.nvars);
+            break;
+        case tac_endblock:
+            printf("%s\n", tac_ops[i->op]);
             break;
         case tac_label:
             printf("%s %s\n",
