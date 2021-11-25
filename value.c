@@ -21,6 +21,30 @@
 //    return v;
 //}
 
+VALUE* new_null(int type)
+{
+    VALUE* ans = (VALUE*)malloc(sizeof(VALUE));
+    if (ans==NULL) {
+        printf("Error! memory not allocated.");
+        exit(EXIT_FAILURE);
+    }
+    ans->type = mmcNULL;
+    ans->v.integer = type;
+    return ans;
+}
+
+VALUE* new_return(VALUE *val)
+{
+    VALUE* ans = (VALUE*)malloc(sizeof(VALUE));
+    if (ans==NULL) {
+        printf("Error! memory not allocated.");
+        exit(EXIT_FAILURE);
+    }
+    ans->type = mmcRETURN;
+    ans->v.ret = val;
+    return ans;
+}
+
 VALUE* new_int(int v)
 {
     VALUE* ans = (VALUE*)malloc(sizeof(VALUE));

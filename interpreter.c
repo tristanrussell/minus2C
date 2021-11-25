@@ -160,6 +160,7 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             printf("=\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
+            if (rightLeaf->type == IDENTIFIER) rightLeaf = lookup_name((TOKEN*)rightLeaf, frame);
             assign_name((TOKEN*)leftLeaf, frame, rightLeaf);
             return NULL;
         case '>':
@@ -183,13 +184,13 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             return NULL;
         case '~':
             printf("~\n");
-            printf("\n\n");
-            if (tree->left->type == 'D') {
-                interpret(tree->left, frame);
-                return interpret(tree->right, frame);
+            if (tree->left->type == '~' || tree->left->type == 'D') {
+                leftLeaf = interpret(tree->left, frame);
+                if (leftLeaf != NULL && leftLeaf->type == mmcRETURN) return leftLeaf;
+                rightLeaf = interpret(tree->right, frame);
+                if (rightLeaf != NULL && rightLeaf->type == mmcRETURN) return rightLeaf;
             } else create_vars(tree->right, frame, interpret(tree->left, frame)->type);
-            printf("\n\n");
-            return (VALUE*)0;
+            return NULL;
         case IDENTIFIER:
             printf("id\n");
             printf("%s\n", t->lexeme);
@@ -254,7 +255,9 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             return NULL;
         case APPLY:
             printf("apply\n");
-            return lexical_call_method((TOKEN*)interpret(tree->left, frame), tree->right, frame);
+            leftLeaf = lexical_call_method((TOKEN*)interpret(tree->left, frame), tree->right, frame);
+            if (leftLeaf->type == mmcRETURN) return leftLeaf->v.ret;
+            else return NULL;
         case LEAF:
             printf("leaf\n");
             return interpret(tree->left, frame);
@@ -291,7 +294,7 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             printf("return\n");
             leftLeaf = interpret(tree->left, frame);
             if (leftLeaf->type == IDENTIFIER) {
-                return lookup_name((TOKEN*)leftLeaf, frame);
-            } else return leftLeaf;
+                return new_return(lookup_name((TOKEN*)leftLeaf, frame));
+            } else return new_return(leftLeaf);
     }
 }

@@ -11,6 +11,7 @@
 #include "interpreter.h"
 #include "icg.h"
 #include "mcg.h"
+#include "value.h"
 
 char *named(int t)
 {
@@ -392,7 +393,7 @@ int main(int argc, char** argv)
     if (interpreter) {
         FRAME *frame = new_frame();
         VALUE *val = interpret(tree, frame);
-        printf("\n%d\n\n", val->v.integer);
+        if (val != NULL && val->type == mmcRETURN) printf("\n%d\n\n", val->v.ret->v.integer);
     }
 
     if (tac || machine) {

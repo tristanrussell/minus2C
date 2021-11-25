@@ -46,7 +46,8 @@ VALUE *init_vars(NODE *ids, NODE *args, FRAME *newEnv, FRAME *oldEnv)
             tok = (TOKEN*)interpret(ids->right, newEnv);
             declare_name(tok, newEnv, interpret(ids->left, newEnv)->type);
             val = interpret(args, oldEnv);
-            assign_name(tok,newEnv, val);
+            if (val->type == IDENTIFIER) val = lookup_name((TOKEN*)val, oldEnv);
+            assign_name(tok, newEnv, val);
             break;
     }
 
@@ -56,7 +57,7 @@ VALUE *init_vars(NODE *ids, NODE *args, FRAME *newEnv, FRAME *oldEnv)
 FRAME *extend_frame(FRAME *env, NODE *ids, NODE *args)
 {
     FRAME * newenv = new_frame();
-    init_vars(ids, args, newenv, env);
+    if (ids != NULL && ids->type != VOID) init_vars(ids, args, newenv, env);
     return newenv;
 }
 
@@ -65,7 +66,13 @@ VALUE *lookup_name(TOKEN *name, FRAME *frame)
     while (frame != NULL) {
         BINDING *bindings = frame->bindings;
         while (bindings != NULL) {
-            if (bindings->name == name) return bindings->val;
+            if (bindings->name == name) {
+                if (bindings->val->type == mmcNULL) {
+                    printf("Attempting to use uninitialised variable.\n");
+                    exit(EXIT_FAILURE);
+                }
+                return bindings->val;
+            }
             bindings = bindings->next;
         }
         frame = frame->next;
@@ -80,10 +87,17 @@ VALUE *assign_name(TOKEN *name, FRAME *frame, VALUE *value)
         BINDING *bindings = frame->bindings;
         while (bindings != NULL) {
             if (bindings->name == name) {
-                if (bindings->val->type == value->type) {
+                if (bindings->val->type == mmcNULL) {
+                    if (bindings->val->v.integer == value->type) {
+                        bindings->val = value;
+                        return value;
+                    }
+                } else if (bindings->val->type == value->type) {
                     bindings->val = value;
                     return value;
-                } else exit(EXIT_FAILURE);
+                }
+                printf("Assigning wrong type to variable.\n");
+                exit(EXIT_FAILURE);
             }
             bindings = bindings->next;
         }
@@ -106,7 +120,7 @@ VALUE *declare_name(TOKEN *name, FRAME *frame, int type)
     BINDING *newBind = malloc(sizeof(BINDING));
     if (newBind != NULL) {
         newBind->name = name;
-        newBind->val = new_int(0);
+        newBind->val = new_null(1);
         newBind->next = bindings;
         frame->bindings = newBind;
         return newBind->val;

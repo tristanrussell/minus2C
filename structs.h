@@ -41,6 +41,7 @@ typedef struct value
         int boolean;
         char* string;
         CLOSURE* closure;
+        VALUE *ret;
     } v;
 } VALUE;
 
