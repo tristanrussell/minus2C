@@ -361,6 +361,25 @@ extern void init_symbtable(void);
 
 int main(int argc, char** argv)
 {
+    int print = 0;
+    int interpreter = 0;
+    int tac = 0;
+    int machine = 0;
+    for (int i = 1; i < argc; i++) {
+        if (strncmp(argv[i], "-p", 2) == 0) {
+            print = 1;
+        }
+        if (strncmp(argv[i], "-i", 2) == 0) {
+            interpreter = 1;
+        }
+        if (strncmp(argv[i], "-t", 2) == 0) {
+            tac = 1;
+        }
+        if (strncmp(argv[i], "-m", 2) == 0) {
+            machine = 1;
+        }
+    }
+
     NODE* tree;
     if (argc>1 && strcmp(argv[1],"-d")==0) yydebug = 1;
     init_symbtable();
@@ -368,13 +387,30 @@ int main(int argc, char** argv)
     yyparse();
     tree = ans;
     printf("parse finished with %p\n", tree);
-    print_tree(tree);
-    TAC *tacSeq = mmc_icg(tree);
-    printf("\n");
-    mmc_print_ic(tacSeq, 0);
-    printf("\n");
-    BB *bbSeq = bb_create(tacSeq);
-    bb_print(bbSeq);
+    if (print) print_tree(tree);
+
+    if (interpreter) {
+        FRAME *frame = new_frame();
+        VALUE *val = interpret(tree, frame);
+        printf("\n%d\n\n", val->v.integer);
+    }
+
+    if (tac || machine) {
+        TAC *tacSeq = mmc_icg(tree);
+        BB *bbSeq = bb_create(tacSeq);
+        if (tac) bb_print(bbSeq);
+        if (machine) {
+            MC *mcSeq = mmc_mcg_bb(bbSeq);
+            mmc_print_mc(mcSeq);
+        }
+    }
+
+//    TAC *tacSeq = mmc_icg(tree);
+//    printf("\n");
+//    mmc_print_ic(tacSeq, 0);
+//    printf("\n");
+//    BB *bbSeq = bb_create(tacSeq);
+//    bb_print(bbSeq);
 //    printf("\n");
 //    MC *mcSeq = mmc_mcg_bb(bbSeq);
 //    printf("\n");
