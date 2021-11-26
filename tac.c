@@ -46,13 +46,15 @@ TAC *new_proc_tac(TOKEN *name, int arity)
     procTac->op = tac_proc;
     procTac->args.proc.name = name;
     procTac->args.proc.arity = arity;
+    procTac->args.proc.locals = 0;
     return procTac;
 }
 
-TAC *new_procend_tac()
+TAC *new_procend_tac(TAC *start)
 {
     TAC *endTac = (TAC*)malloc(sizeof(TAC));
     endTac->op = tac_endproc;
+    endTac->args.endproc.start = start;
     return endTac;
 }
 
@@ -146,10 +148,11 @@ void mmc_print_ic(TAC* i, int ind)
                        i->args.line.src1->lexeme);
             break;
         case tac_proc:
-            printf("%s %s, %d\n",
+            printf("%s %s, %d, %d\n",
                    tac_ops[i->op],
                    i->args.proc.name->lexeme,
-                   i->args.proc.arity);
+                   i->args.proc.arity,
+                   i->args.proc.locals);
             break;
         case tac_endproc:
             printf("%s\n", tac_ops[i->op]);

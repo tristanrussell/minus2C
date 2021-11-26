@@ -7,13 +7,9 @@
 
 int countArgs(NODE *ast)
 {
-    int count = 0;
     switch (ast->type) {
-        case ';':
         case ',':
-            count += countArgs(ast->left);
-            count += countArgs(ast->right);
-            return count;
+            return countArgs(ast->left) + countArgs(ast->right);
         case '~':
             return 1;
         default:
@@ -21,7 +17,22 @@ int countArgs(NODE *ast)
     }
 }
 
-// Need to add blocks
+int countLocals(NODE *ast)
+{
+    switch (ast->type) {
+        case ';':
+            return countLocals(ast->left) + countLocals(ast->right);
+        case ',':
+            if (ast->left->type == ',') return 1 + countLocals(ast->left);
+            return 2;
+        case '~':
+            if (ast->right->type == ',') return countLocals(ast->right);
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 TAC *tac_compute_if(NODE *ast)
 {
     TOKEN *temp;
@@ -58,12 +69,12 @@ TAC *tac_compute_if(NODE *ast)
 
     if (ast->right->type == ELSE) {
         TAC *thenLeaf = mmc_icg(ast->right->left);
-        int countThen = countArgs(ast->right->left);
+        int countThen = countLocals(ast->right->left);
         TAC *blockThenStart = new_block_tac(countThen);
         TAC *blockThenEnd = new_blockend_tac();
 
         TAC *elseLeaf = mmc_icg(ast->right->right);
-        int countElse = countArgs(ast->right->right);
+        int countElse = countLocals(ast->right->right);
         TAC *blockElseStart = new_block_tac(countElse);
         TAC *blockElseEnd = new_blockend_tac();
 
@@ -89,7 +100,7 @@ TAC *tac_compute_if(NODE *ast)
         return labelEnd;
     } else {
         TAC *rightLeaf = mmc_icg(ast->right);
-        int count = countArgs(ast->right);
+        int count = countLocals(ast->right);
         TAC *blockStart = new_block_tac(count);
         TAC *blockEnd = new_blockend_tac();
 
@@ -106,7 +117,6 @@ TAC *tac_compute_if(NODE *ast)
     }
 }
 
-// Need to add blocks
 TAC *tac_compute_while(NODE *ast)
 {
     TOKEN *temp;
@@ -147,9 +157,10 @@ TAC *tac_compute_while(NODE *ast)
     TAC *ifTac = new_if_tac(leftLeaf, &labelEnd->args.taclabel);
     TAC *gotoTac = new_goto_tac(&labelStart->args.taclabel);
 
-    int count = countArgs(ast->right);
+    int count = countLocals(ast->right);
     TAC *blockStart = new_block_tac(count);
     TAC *blockEnd = new_blockend_tac();
+    printf("here\n");
 
     TAC *r = rightLeaf;
     while (r != NULL) {
@@ -180,6 +191,11 @@ TAC *tac_compute_closure(NODE *ast)
     if (ast->type != 'D') return NULL;
 
     NODE *dec = ast->left;
+
+    int count = countLocals(ast->right);
+    TAC *blockStart = new_block_tac(count);
+    TAC *blockEnd = new_blockend_tac();
+
     TAC *code = mmc_icg(ast->right);
 
     if (dec->type != 'd' || code == NULL) {
@@ -201,15 +217,19 @@ TAC *tac_compute_closure(NODE *ast)
     int numArgs = countArgs(func->right);
 
     TAC *proc = new_proc_tac(name->args.line.src1, numArgs);
-    TAC *endproc = new_procend_tac();
+    TAC *endproc = new_procend_tac(proc);
 
-    prepend_tac(proc, code);
-    endproc->next = code;
+    blockStart->next = proc;
+
+    prepend_tac(blockStart, code);
+
+    blockEnd->next = code;
+    endproc->next = blockEnd;
 
     return endproc;
 }
 
-TAC* mmc_icg(NODE* ast)
+TAC *mmc_icg(NODE* ast)
 {
     TOKEN *t = (TOKEN*)ast;
     TAC *leftLeaf = NULL;
@@ -389,7 +409,41 @@ TAC* mmc_icg(NODE* ast)
     }
 }
 
-BB* bb_create(TAC* seq)
+void remove_blocks(TAC *tac)
+{
+    int count = 0;
+
+    TAC *curr = tac;
+
+    while(curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
+
+    if (curr->next == NULL) return;
+
+    TAC *prev = curr;
+    curr = curr->next;
+    for (; curr != NULL; prev = curr, curr = curr->next) {
+        if (curr->op == tac_block) {
+            count += curr->args.block.nvars;
+            prev->next = curr->next;
+        } else if (curr->op == tac_endblock) {
+            prev->next = curr->next;
+        } else if (curr->op == tac_endproc) {
+            remove_blocks(curr);
+            curr = curr->args.endproc.start;
+        } else if (curr->op == tac_proc) {
+            curr->args.proc.locals = count;
+            if (curr->next != NULL) remove_blocks(curr->next);
+            return;
+        }
+    }
+}
+
+void tac_optimise(TAC *tac)
+{
+    remove_blocks(tac);
+}
+
+BB *bb_create(TAC* seq)
 {
     BB *bb;
     if (seq->next == NULL) {
@@ -397,7 +451,7 @@ BB* bb_create(TAC* seq)
         return bb;
     } else bb = bb_create(seq->next);
 
-    int jumpOps[] = {tac_proc, tac_call, tac_block, tac_label};
+    int jumpOps[] = {tac_proc, tac_label};
     int len = 4;
     for (int i = 0; i < len; i++) {
         if (seq->op == jumpOps[i]) {

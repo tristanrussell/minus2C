@@ -62,7 +62,12 @@ typedef struct token
 typedef struct proc {
     TOKEN* name;
     int arity;
+    int locals;
 } PROC;
+
+typedef struct endproc {
+    TAC* start;
+} ENDPROC;
 
 typedef struct block {
     int nvars;
@@ -96,6 +101,7 @@ typedef struct tac {
     int     op;
     union {
         PROC proc;
+        ENDPROC endproc;
         BLOCK block;
         CALL call;
         LINE line;

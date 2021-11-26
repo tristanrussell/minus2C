@@ -133,6 +133,10 @@ MC* mmc_mcg(TAC* i)
 //                       tac_ops[i->op],
 //                       i->args.line.src1->lexeme);
 //            break;
+        case tac_proc:
+            break;
+        case tac_endproc:
+            break;
         case tac_label:
             printf("label\n");
             sprintf(insn, "%s:\t", i->args.taclabel.name->lexeme);

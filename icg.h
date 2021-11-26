@@ -5,6 +5,10 @@
 
 TAC* mmc_icg(NODE*);
 
+void remove_blocks(TAC *tac);
+
+void tac_optimise(TAC*);
+
 BB* bb_create(TAC*);
 
 BB* bb_optimise(BB*);
