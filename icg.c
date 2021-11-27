@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "icg.h"
 #include "tac.h"
 #include "C.tab.h"
@@ -438,9 +439,17 @@ void remove_blocks(TAC *tac)
     }
 }
 
-void tac_optimise(TAC *tac)
+TAC *remove_post_main(TAC *tac)
+{
+    TAC *curr = tac;
+    while(curr != NULL && (curr->op != tac_endproc || strcmp(curr->args.endproc.start->args.proc.name->lexeme, "main") != 0)) curr = curr->next;
+    return curr;
+}
+
+TAC *tac_optimise(TAC *tac)
 {
     remove_blocks(tac);
+    return remove_post_main(tac);
 }
 
 BB *bb_create(TAC* seq)
