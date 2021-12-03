@@ -36,6 +36,7 @@ VALUE *init_vars(NODE *ids, NODE *args, FRAME *newEnv, FRAME *oldEnv)
 
     TOKEN *tok;
     VALUE *val = (VALUE*)0;
+    int type;
 
     switch (ids->type) {
         case ',':
@@ -44,7 +45,16 @@ VALUE *init_vars(NODE *ids, NODE *args, FRAME *newEnv, FRAME *oldEnv)
             break;
         case '~':
             tok = (TOKEN*)interpret(ids->right, newEnv);
-            declare_name(tok, newEnv, interpret(ids->left, newEnv)->type);
+            type = interpret(ids->left, newEnv)->type;
+            switch (type) {
+                case INT:
+                    type = mmcINT;
+                    break;
+                case FUNCTION:
+                    type = mmcCLOSURE;
+                    break;
+            }
+            declare_name(tok, newEnv, type);
             val = interpret(args, oldEnv);
             if (val->type == IDENTIFIER) val = lookup_name((TOKEN*)val, oldEnv);
             assign_name(tok, newEnv, val);
@@ -96,7 +106,7 @@ VALUE *assign_name(TOKEN *name, FRAME *frame, VALUE *value)
                     bindings->val = value;
                     return value;
                 }
-                printf("Assigning wrong type to variable.\n");
+                printf("Assigning wrong type to variable. Expected:%d Received:%d\n", bindings->val->v.integer, value->type);
                 exit(EXIT_FAILURE);
             }
             bindings = bindings->next;
@@ -120,7 +130,7 @@ VALUE *declare_name(TOKEN *name, FRAME *frame, int type)
     BINDING *newBind = malloc(sizeof(BINDING));
     if (newBind != NULL) {
         newBind->name = name;
-        newBind->val = new_null(1);
+        newBind->val = new_null(type);
         newBind->next = bindings;
         frame->bindings = newBind;
         return newBind->val;

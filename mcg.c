@@ -76,7 +76,6 @@ MC* mmc_mcg(TAC* i)
             printf("load_const\n");
             sprintf(insn, "li $%s, %d", i->args.line.dst->lexeme, i->args.line.src1->value);
             this = new_mci(insn);
-
             break;
         case tac_load_id:
             printf("load_id\n");

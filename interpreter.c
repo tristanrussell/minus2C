@@ -13,6 +13,15 @@ VALUE *create_vars(NODE *tree, FRAME *frame, int type)
     TOKEN *t = (TOKEN*)tree;
     VALUE *val = (VALUE*)0;
 
+    switch (type) {
+        case INT:
+            type = mmcINT;
+            break;
+        case FUNCTION:
+            type = mmcCLOSURE;
+            break;
+    }
+
     switch (tree->type) {
         case ',':
             create_vars(tree->left, frame, type);
@@ -253,6 +262,9 @@ VALUE *interpret(NODE *tree, FRAME *frame)
         case VOID:
             printf("void\n");
             return NULL;
+        case FUNCTION:
+            printf("function\n");
+            return (VALUE*)tree;
         case APPLY:
             printf("apply\n");
             leftLeaf = lexical_call_method((TOKEN*)interpret(tree->left, frame), tree->right, frame);
