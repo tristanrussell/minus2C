@@ -87,8 +87,7 @@ VALUE *lookup_name(TOKEN *name, FRAME *frame)
         }
         frame = frame->next;
     }
-    printf("Name not found.");
-    exit(EXIT_FAILURE);
+    return NULL;
 }
 
 VALUE *assign_name(TOKEN *name, FRAME *frame, VALUE *value)

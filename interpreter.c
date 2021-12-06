@@ -6,6 +6,10 @@
 #include "env.h"
 #include "C.tab.h"
 
+// Predefined methods
+VALUE *print_int(NODE*, FRAME*);
+VALUE *read_int();
+
 VALUE *interpret(NODE*, FRAME*);
 
 VALUE *create_vars(NODE *tree, FRAME *frame, int type)
@@ -81,15 +85,53 @@ VALUE *create_closure(NODE *tree, FRAME *frame)
 VALUE *lexical_call_method(TOKEN *name, NODE *args, FRAME *env)
 {
     VALUE *v = lookup_name(name, env);
-    printf("Found:%s\n", name->lexeme);
-    if (v->type != mmcCLOSURE) {
+    if (v == NULL || v->type != mmcCLOSURE) {
+        if (strcmp(name->lexeme, "print_int") == 0) return print_int(args, env);
+        else if (strcmp(name->lexeme, "read_int") == 0) return read_int();
         printf("Non-existent function called.");
         exit(EXIT_FAILURE);
+    } else {
+        printf("Found:%s\n", name->lexeme);
     }
     CLOSURE *f = v->v.closure;
     FRAME *newenv = extend_frame(env, f->ids, args);
     newenv->next = f->env;
     return interpret(f->code, newenv);
+}
+
+VALUE *print_int(NODE *args, FRAME *frame)
+{
+    VALUE *arg = interpret(args, frame);
+    if (arg->type == IDENTIFIER) {
+        arg = lookup_name((TOKEN*)arg, frame);
+    }
+
+    printf("%d\n", arg->v.integer);
+
+    return NULL;
+}
+
+VALUE *read_int()
+{
+    int toReturn;
+    int result = scanf("%d", &toReturn);
+    if (result == EOF) {
+        printf("Error, cannot read input.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (result == 0) {
+        printf("Error, invalid input.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return new_return(new_int(toReturn));
+}
+
+VALUE *premain(NODE *tree, FRAME *frame)
+{
+    // Do stuff
+
+    return interpret(tree, frame);
 }
 
 VALUE *interpret(NODE *tree, FRAME *frame)
@@ -268,7 +310,7 @@ VALUE *interpret(NODE *tree, FRAME *frame)
         case APPLY:
             printf("apply\n");
             leftLeaf = lexical_call_method((TOKEN*)interpret(tree->left, frame), tree->right, frame);
-            if (leftLeaf->type == mmcRETURN) return leftLeaf->v.ret;
+            if (leftLeaf != NULL && leftLeaf->type == mmcRETURN) return leftLeaf->v.ret;
             else return NULL;
         case LEAF:
             printf("leaf\n");
