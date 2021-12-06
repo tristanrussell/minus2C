@@ -57,6 +57,8 @@ TAC *new_line_tac(int, TOKEN*, TOKEN*, TOKEN*);
 
 TOKEN *new_temp();
 
+TOKEN *new_arg(int);
+
 TAC *prepend_tac(TAC*, TAC*);
 
 void mmc_print_ic(TAC*, int);

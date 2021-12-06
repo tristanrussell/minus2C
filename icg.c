@@ -6,11 +6,11 @@
 #include "C.tab.h"
 #include "token.h"
 
-int countArgs(NODE *ast)
+int countParams(NODE *ast)
 {
     switch (ast->type) {
         case ',':
-            return countArgs(ast->left) + countArgs(ast->right);
+            return countParams(ast->left) + countParams(ast->right);
         case '~':
             return 1;
         default:
@@ -28,6 +28,19 @@ int countLocals(NODE *ast)
             return 2;
         case '~':
             if (ast->right->type == ',') return countLocals(ast->right);
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+int countArgs(NODE *ast)
+{
+    switch(ast->type) {
+        case ',':
+            return countArgs(ast->left) + countArgs(ast->right);
+        case APPLY:
+        case LEAF:
             return 1;
         default:
             return 0;
@@ -215,7 +228,7 @@ TAC *tac_compute_closure(NODE *ast)
 
     TAC *name = mmc_icg(func->left);
 
-    int numArgs = countArgs(func->right);
+    int numArgs = countParams(func->right);
 
     TAC *proc = new_proc_tac(name->args.line.src1, numArgs);
     TAC *endproc = new_procend_tac(proc);
@@ -261,32 +274,32 @@ TAC *tac_compute_call(NODE *ast)
     TAC *leftLeaf = mmc_icg(ast->left);
     TAC *ret = new_call_tac(leftLeaf->args.line.src1, 0);
 
-    int countArgs = 0;
+    int numArgs = countArgs(ast->right);
 
-    TLIST *list = tac_compute_args(ast->right);
-    TLIST *curr = list;
-    TLIST *prev = NULL;
-    while (curr != NULL) {
-        countArgs++;
-        if (curr->tac->op == tac_call) {
-            prepend_tac(curr->tac, ret);
-            if (prev != NULL) {
-                prev->next = curr->next;
-            } else {
-                list = curr->next;
-                continue;
-            }
-        }
-        prev = curr;
-        curr = curr->next;
-    }
-    curr = list;
-    while (curr != NULL) {
-        prepend_tac(curr->tac, ret);
-        curr = curr->next;
-    }
+//    TLIST *list = tac_compute_args(ast->right);
+//    TLIST *curr = list;
+//    TLIST *prev = NULL;
+//    while (curr != NULL) {
+//        countArgs++;
+//        if (curr->tac->op == tac_call) {
+//            prepend_tac(curr->tac, ret);
+//            if (prev != NULL) {
+//                prev->next = curr->next;
+//            } else {
+//                list = curr->next;
+//                continue;
+//            }
+//        }
+//        prev = curr;
+//        curr = curr->next;
+//    }
+//    curr = list;
+//    while (curr != NULL) {
+//        prepend_tac(curr->tac, ret);
+//        curr = curr->next;
+//    }
 
-    ret->args.call.arity = countArgs;
+    ret->args.call.arity = numArgs;
     return ret;
 }
 

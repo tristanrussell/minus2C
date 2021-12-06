@@ -105,6 +105,14 @@ TOKEN *new_temp() {
     return t;
 }
 
+TOKEN *new_arg(int a) {
+    TOKEN *t = new_token(TEMPORARY);
+    char *tempName = (char*)malloc(10 * sizeof(char));
+    sprintf(tempName, "a%d", a);
+    t->lexeme = tempName;
+    return t;
+}
+
 TAC *prepend_tac(TAC *pre, TAC *post) {
     TAC *n = post;
     while (n->next != NULL) n = n->next;
