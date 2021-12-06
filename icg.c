@@ -230,6 +230,66 @@ TAC *tac_compute_closure(NODE *ast)
     return endproc;
 }
 
+typedef struct tlist {
+    TAC *tac;
+    struct tlist *next;
+} TLIST;
+
+TLIST *tac_compute_args(NODE *ast)
+{
+    TLIST *left;
+    TLIST *right;
+
+    switch(ast->type) {
+        case ',':
+            left = tac_compute_args(ast->left);
+            right = tac_compute_args(ast->right);
+            right->next = left;
+            return right;
+        case APPLY:
+        case LEAF:
+            left = (TLIST *)malloc(sizeof(TLIST));
+            left->tac = mmc_icg(ast);
+            return left;
+        default:
+            return NULL;
+    }
+}
+
+TAC *tac_compute_call(NODE *ast)
+{
+    TAC *leftLeaf = mmc_icg(ast->left);
+    TAC *ret = new_call_tac(leftLeaf->args.line.src1, 0);
+
+    int countArgs = 0;
+
+    TLIST *list = tac_compute_args(ast->right);
+    TLIST *curr = list;
+    TLIST *prev = NULL;
+    while (curr != NULL) {
+        countArgs++;
+        if (curr->tac->op == tac_call) {
+            prepend_tac(curr->tac, ret);
+            if (prev != NULL) {
+                prev->next = curr->next;
+            } else {
+                list = curr->next;
+                continue;
+            }
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+    curr = list;
+    while (curr != NULL) {
+        prepend_tac(curr->tac, ret);
+        curr = curr->next;
+    }
+
+    ret->args.call.arity = countArgs;
+    return ret;
+}
+
 TAC *mmc_icg(NODE* ast)
 {
     TOKEN *t = (TOKEN*)ast;
@@ -299,7 +359,13 @@ TAC *mmc_icg(NODE* ast)
 //            if (rightLeaf->op == tac_load_id) {
 //                return new_line_tac(tac_store, rightLeaf->args.line.src1, NULL, leftLeaf->args.line.src1);
 //            } else {
-            ret = new_line_tac(tac_store, rightLeaf->args.line.dst, NULL, leftLeaf->args.line.src1);
+            if (rightLeaf->op == tac_call) {
+                TOKEN *rv = new_token(TEMPORARY);
+                rv->lexeme = "rv";
+                ret = new_line_tac(tac_store, rv, NULL, leftLeaf->args.line.src1);
+            } else {
+                ret = new_line_tac(tac_store, rightLeaf->args.line.dst, NULL, leftLeaf->args.line.src1);
+            }
             ret->next = rightLeaf;
             return ret;
 //            }
@@ -370,6 +436,12 @@ TAC *mmc_icg(NODE* ast)
         case VOID:
             printf("void\n");
             return NULL;
+        case FUNCTION:
+            printf("function\n");
+            return NULL;
+        case APPLY: // Need to implement.
+            printf("apply\n");
+            return tac_compute_call(ast);
         case LEAF:
             printf("leaf\n");
             return mmc_icg(ast->left);
@@ -381,10 +453,6 @@ TAC *mmc_icg(NODE* ast)
             return NULL;
         case WHILE:
             printf("while\n");
-            // label L(x)
-            // if (cond) goto L(y)
-            // continue loop code
-            // Look at asm examples for inspiration.
             return tac_compute_while(ast);
         case CONTINUE:
             printf("continue\n");
@@ -399,6 +467,12 @@ TAC *mmc_icg(NODE* ast)
             leftLeaf = mmc_icg(ast->left);
             if (leftLeaf->op == tac_load_id || leftLeaf->op == tac_load_const) {
                 return new_line_tac(tac_return, leftLeaf->args.line.src1, NULL, NULL);
+            } else if (leftLeaf->op == tac_call) {
+                TOKEN *rv = new_token(TEMPORARY);
+                rv->lexeme = "rv";
+                ret = new_line_tac(tac_return, rv, NULL, NULL);
+                ret->next = leftLeaf;
+                return ret;
             } else {
                 ret = new_line_tac(tac_return, leftLeaf->args.line.dst, NULL, NULL);
                 ret->next = leftLeaf;

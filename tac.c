@@ -165,6 +165,12 @@ void mmc_print_ic(TAC* i, int ind)
         case tac_endblock:
             printf("%s\n", tac_ops[i->op]);
             break;
+        case tac_call:
+            printf("%s %s, %d\n",
+                   tac_ops[i->op],
+                   i->args.call.name->lexeme,
+                   i->args.call.arity);
+            break;
         case tac_label:
             printf("%s %s\n",
                    tac_ops[i->op],
