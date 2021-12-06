@@ -1,0 +1,21 @@
+/*
+ * This test should print 625.
+ */
+
+function twice(function f) {
+    int g(int x) {
+        return f(f(x));
+    }
+    return g;
+}
+
+int one(int a) {
+    int z = a * a;
+    return z;
+}
+
+int main(void) {
+    int x = 5;
+    function g = twice(one);
+    return g(x);
+}
