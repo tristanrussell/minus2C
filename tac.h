@@ -47,7 +47,7 @@ TAC *new_proc_tac(TOKEN*, int);
 
 TAC *new_procend_tac(TAC*);
 
-TAC *new_block_tac(int);
+TAC *new_block_tac(int, TOKEN**);
 
 TAC *new_blockend_tac();
 

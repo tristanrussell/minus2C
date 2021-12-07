@@ -6,44 +6,106 @@
 #include "C.tab.h"
 #include "token.h"
 
-int countParams(NODE *ast)
+typedef struct llist {
+    void *item;
+    struct llist *next;
+} LLIST;
+
+LLIST *new_llist(void *item)
+{
+    LLIST *ret = (LLIST*)malloc(sizeof(LLIST));
+    ret->item = item;
+    ret->next = NULL;
+    return ret;
+}
+
+LLIST *join_llist(LLIST *list, LLIST *next)
+{
+    LLIST *curr = list;
+    while (curr->next != NULL) curr = curr->next;
+    curr->next = next;
+    return list;
+}
+
+LLIST *append_llist(LLIST *list, void *next)
+{
+    LLIST *curr = list;
+    while (curr->next != NULL) curr = curr->next;
+    curr->next = new_llist(next);
+    return list;
+}
+
+int count_list(LLIST *list)
+{
+    LLIST *curr = list;
+    int count = 0;
+    while (curr != NULL) {
+        count++;
+        curr = curr->next;
+    }
+    return count;
+}
+
+TOKEN **convert_token_array(LLIST *list)
+{
+    TOKEN **tokens = (TOKEN**)malloc(count_list(list) * sizeof(TOKEN*));
+    LLIST *curr = list;
+    int i = 0;
+    while (curr != NULL) {
+        tokens[i++] = (TOKEN*)curr->item;
+        curr = curr->next;
+    }
+    return tokens;
+}
+
+LLIST *getParams(NODE *ast)
 {
     switch (ast->type) {
         case ',':
-            return countParams(ast->left) + countParams(ast->right);
+            return join_llist(getParams(ast->left), getParams(ast->right));
         case '~':
-            return 1;
+            return getParams(ast->right);
+        case LEAF:
+            return new_llist((void*)ast->left);
         default:
-            return 0;
+            return NULL;
     }
 }
 
-int countLocals(NODE *ast)
+LLIST *getLocals(NODE *ast)
 {
+    LLIST *left;
+    LLIST *right;
+
     switch (ast->type) {
         case ';':
-            return countLocals(ast->left) + countLocals(ast->right);
+            left = getLocals(ast->left);
+            right = getLocals(ast->right);
+            if (left == NULL && right == NULL) return NULL;
+            if (left == NULL) return right;
+            if (right == NULL) return left;
+            return join_llist(left, right);
         case ',':
-            if (ast->left->type == ',') return 1 + countLocals(ast->left);
-            return 2;
+            return join_llist(getLocals(ast->left), getLocals(ast->right));
         case '~':
-            if (ast->right->type == ',') return countLocals(ast->right);
-            return 1;
+            return getLocals(ast->right);
+        case LEAF:
+            return new_llist((void*)ast->left);
         default:
-            return 0;
+            return NULL;
     }
 }
 
-int countArgs(NODE *ast)
+LLIST *getArgs(NODE *ast)
 {
     switch(ast->type) {
         case ',':
-            return countArgs(ast->left) + countArgs(ast->right);
+            return join_llist(getArgs(ast->left), getArgs(ast->right));
         case APPLY:
         case LEAF:
-            return 1;
+            return new_llist((void*)ast->left);
         default:
-            return 0;
+            return NULL;
     }
 }
 
@@ -83,13 +145,17 @@ TAC *tac_compute_if(NODE *ast)
 
     if (ast->right->type == ELSE) {
         TAC *thenLeaf = mmc_icg(ast->right->left);
-        int countThen = countLocals(ast->right->left);
-        TAC *blockThenStart = new_block_tac(countThen);
+        LLIST *localsThen = getLocals(ast->right->left);
+        int countThen = count_list(localsThen);
+
+        TAC *blockThenStart = new_block_tac(countThen, convert_token_array(localsThen));
         TAC *blockThenEnd = new_blockend_tac();
 
         TAC *elseLeaf = mmc_icg(ast->right->right);
-        int countElse = countLocals(ast->right->right);
-        TAC *blockElseStart = new_block_tac(countElse);
+        LLIST *localsElse = getLocals(ast->right->right);
+        int countElse = count_list(localsElse);
+
+        TAC *blockElseStart = new_block_tac(countElse, convert_token_array(localsElse));
         TAC *blockElseEnd = new_blockend_tac();
 
         TAC *labelElse = new_label_tac();
@@ -114,8 +180,10 @@ TAC *tac_compute_if(NODE *ast)
         return labelEnd;
     } else {
         TAC *rightLeaf = mmc_icg(ast->right);
-        int count = countLocals(ast->right);
-        TAC *blockStart = new_block_tac(count);
+        LLIST *locals = getLocals(ast->right);
+        int count = count_list(locals);
+
+        TAC *blockStart = new_block_tac(count, convert_token_array(locals));
         TAC *blockEnd = new_blockend_tac();
 
         TAC *label = new_label_tac();
@@ -171,8 +239,9 @@ TAC *tac_compute_while(NODE *ast)
     TAC *ifTac = new_if_tac(leftLeaf, &labelEnd->args.taclabel);
     TAC *gotoTac = new_goto_tac(&labelStart->args.taclabel);
 
-    int count = countLocals(ast->right);
-    TAC *blockStart = new_block_tac(count);
+    LLIST *locals = getLocals(ast->right);
+    int count = count_list(locals);
+    TAC *blockStart = new_block_tac(count, convert_token_array(locals));
     TAC *blockEnd = new_blockend_tac();
     printf("here\n");
 
@@ -206,14 +275,15 @@ TAC *tac_compute_closure(NODE *ast)
 
     NODE *dec = ast->left;
 
-    int count = countLocals(ast->right);
-    TAC *blockStart = new_block_tac(count);
+    LLIST *locals = getLocals(ast->right);
+    int count = count_list(locals);
+    TAC *blockStart = new_block_tac(count, convert_token_array(locals));
     TAC *blockEnd = new_blockend_tac();
 
     TAC *code = mmc_icg(ast->right);
 
     if (dec->type != 'd' || code == NULL) {
-        printf("Error in function declaration.");
+        printf("Error in function declaration.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -222,15 +292,17 @@ TAC *tac_compute_closure(NODE *ast)
     NODE *func = dec->right;
 
     if (func->type != 'F') {
-        printf("Error in function declaration.");
+        printf("Error in function declaration.\n");
         exit(EXIT_FAILURE);
     }
 
     TAC *name = mmc_icg(func->left);
 
-    int numArgs = countParams(func->right);
+    LLIST *params = getParams(func->right);
+    int numParams = count_list(params);
 
-    TAC *proc = new_proc_tac(name->args.line.src1, numArgs);
+    TAC *proc = new_proc_tac(name->args.line.src1, numParams);
+    proc->args.proc.ar->param = convert_token_array(params);
     TAC *endproc = new_procend_tac(proc);
 
     blockStart->next = proc;
@@ -274,7 +346,8 @@ TAC *tac_compute_call(NODE *ast)
     TAC *leftLeaf = mmc_icg(ast->left);
     TAC *ret = new_call_tac(leftLeaf->args.line.src1, 0);
 
-    int numArgs = countArgs(ast->right);
+    LLIST *args = getArgs(ast->right);
+    int numArgs = count_list(args);
 
 //    TLIST *list = tac_compute_args(ast->right);
 //    TLIST *curr = list;
@@ -502,6 +575,7 @@ void remove_blocks(TAC *tac)
     int count = 0;
 
     TAC *curr = tac;
+    LLIST *list = new_llist(NULL);
 
     while(curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
 
@@ -512,6 +586,9 @@ void remove_blocks(TAC *tac)
     for (; curr != NULL; prev = curr, curr = curr->next) {
         if (curr->op == tac_block) {
             count += curr->args.block.nvars;
+            for (int i = 0; i < count; i++) {
+                list = append_llist(list, curr->args.block.vars[i]);
+            }
             prev->next = curr->next;
         } else if (curr->op == tac_endblock) {
             prev->next = curr->next;
@@ -519,11 +596,22 @@ void remove_blocks(TAC *tac)
             remove_blocks(curr);
             curr = curr->args.endproc.start;
         } else if (curr->op == tac_proc) {
-            curr->args.proc.locals = count;
+            curr->args.proc.localCount = count;
+            curr->args.proc.ar->local = convert_token_array(list->next);
             if (curr->next != NULL) remove_blocks(curr->next);
             return;
         }
     }
+}
+
+void complete_activation_records(TAC *tac)
+{
+
+}
+
+void flatten_procedures(TAC *tac)
+{
+
 }
 
 TAC *remove_post_main(TAC *tac)

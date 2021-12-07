@@ -7,11 +7,12 @@ typedef struct closure CLOSURE;
 typedef struct value VALUE;
 typedef struct node NODE;
 typedef struct token TOKEN;
-typedef struct label LABEL;
+typedef struct taclabel TACLABEL;
 typedef struct tacif TACIF;
 typedef struct tacgoto TACGOTO;
 typedef struct tac TAC;
 typedef struct bb BB;
+typedef struct ar AR;
 typedef struct mc MC;
 
 typedef struct frame {
@@ -51,8 +52,7 @@ typedef struct node {
     struct node *right;
 } NODE;
 
-typedef struct token
-{
+typedef struct token {
     int           type;
     char          *lexeme;
     int           value;
@@ -61,8 +61,9 @@ typedef struct token
 
 typedef struct proc {
     TOKEN* name;
+    AR* ar;
     int arity;
-    int locals;
+    int localCount;
 } PROC;
 
 typedef struct endproc {
@@ -71,10 +72,12 @@ typedef struct endproc {
 
 typedef struct block {
     int nvars;
+    TOKEN **vars;
 } BLOCK;
 
 typedef struct call {
     TOKEN* name;
+    AR* ar;
     int arity;
 } CALL;
 
@@ -116,6 +119,15 @@ typedef struct bb {
     TAC*    leader;
     BB*     next;
 } BB;
+
+typedef struct ar {
+    AR *fp; // save caller ’s AR
+    char pc; // save caller ’s PC
+    AR *sl; // this function ’s static link
+    TOKEN **param; // param0 , ... paramm
+    TOKEN **local; // local0 , ... localn
+    TOKEN **tmp; //tmp0 , ... tmpn
+} AR;
 
 typedef struct mc {
     char* insn;
