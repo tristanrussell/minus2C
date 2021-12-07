@@ -79,8 +79,9 @@ TAC *new_call_tac(TOKEN *name, int arity)
 {
     TAC *callTac = (TAC*)malloc(sizeof(TAC));
     callTac->op = tac_call;
-    callTac->args.proc.name = name;
-    callTac->args.proc.arity = arity;
+    callTac->args.call.name = name;
+    callTac->args.call.arity = arity;
+    callTac->args.call.ar = (AR*)malloc(sizeof(AR));
     return callTac;
 }
 

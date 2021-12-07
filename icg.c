@@ -577,7 +577,7 @@ void remove_blocks(TAC *tac)
     TAC *curr = tac;
     LLIST *list = new_llist(NULL);
 
-    while(curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
+    while (curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
 
     if (curr->next == NULL) return;
 
@@ -604,14 +604,66 @@ void remove_blocks(TAC *tac)
     }
 }
 
-void complete_activation_records(TAC *tac)
+void add_static_links(TAC *tac)
 {
+    TAC *curr = tac;
+    AR *ar = NULL;
 
+    while (curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
+
+    if (curr->next == NULL) return;
+
+    for (; curr != NULL; curr = curr->next) {
+        if (curr->op == tac_endproc) {
+            curr->args.endproc.start->args.proc.ar->sl = ar;
+            ar = curr->args.endproc.start->args.proc.ar;
+        } else if (curr->op == tac_proc) {
+            ar = curr->args.proc.ar->sl;
+        } else if (curr->op == tac_call) {
+            curr->args.call.ar->fp = ar;
+        }
+    }
+}
+
+TAC *flatten_proc_rec(TAC *tac)
+{
+    TAC *end = tac->args.endproc.start;
+    TAC *curr = tac->next;
+    TAC *prev = tac;
+    for (; curr != NULL; prev = curr, curr = curr->next) {
+        if (curr == end) break;
+        else if (curr->op == tac_endproc) {
+            prev->next = curr->args.endproc.start->next;
+            curr->args.endproc.start->next = NULL;
+            prepend_tac(flatten_proc_rec(curr), prev);
+            curr = prev;
+        }
+    }
+    return tac;
 }
 
 void flatten_procedures(TAC *tac)
 {
+    TAC *curr = tac;
+    int level = 0;
+    TAC *procs = NULL;
+    TAC *next = NULL;
 
+    while(curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
+
+    if (curr->next == NULL) return;
+
+    TAC *prev = NULL;
+    for (; curr != NULL; prev = curr, curr = curr->next) {
+        if (curr->op == tac_endproc) {
+            next = curr->args.endproc.start->next;
+            curr->args.endproc.start->next = NULL;
+            curr = flatten_proc_rec(curr);
+            if (prev != NULL) prev->next = curr;
+            while (curr->next != NULL) curr = curr->next;
+            curr->next = next;
+        }
+    }
 }
 
 TAC *remove_post_main(TAC *tac)
@@ -624,6 +676,8 @@ TAC *remove_post_main(TAC *tac)
 TAC *tac_optimise(TAC *tac)
 {
     remove_blocks(tac);
+    add_static_links(tac);
+    flatten_procedures(tac);
     return remove_post_main(tac);
 }
 
