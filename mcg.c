@@ -4,6 +4,14 @@
 #include "tac.h"
 #include "mc.h"
 
+MC *append_mc(MC *pre, MC *post)
+{
+    MC *n = post;
+    while (n->next != NULL) n = n->next;
+    n->next = pre;
+    return post;
+}
+
 MC *mcg_compute_if(TAC *i, MC *prev)
 {
     MC *this;
@@ -61,6 +69,36 @@ MC *mcg_compute_if(TAC *i, MC *prev)
         default:
             return NULL;
     }
+}
+
+MC *mcg_compute_proc(TAC *i, MC *prev)
+{
+    int numArgs = i->args.proc.arity;
+    int numLocals = i->args.proc.localCount;
+    AR *ar = i->args.proc.ar;
+
+    MC *this;
+    MC *next;
+    char *insn = (char*)malloc(50 * sizeof(char));
+
+    sprintf(insn, "entry_%s", i->args.proc.name->lexeme);
+    this = new_mci(insn);
+    this->next = prev;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "load $a0, %d", 12 + 4*(numArgs + numLocals));
+    next = new_mci(insn);
+    next->next = this;
+    this = next;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "syscall sbrk");
+    next = new_mci(insn);
+    next->next = this;
+    this = next;
+
+    // Do I need to reverse order of TAC procs to ensure setup in correct
+    // order for MC generation.
 }
 
 MC* mmc_mcg(TAC* i)
@@ -133,7 +171,7 @@ MC* mmc_mcg(TAC* i)
 //                       i->args.line.src1->lexeme);
 //            break;
         case tac_proc:
-            break;
+            return mcg_compute_proc(i, prev);
         case tac_endproc:
             break;
         case tac_label:
