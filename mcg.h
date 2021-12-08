@@ -3,8 +3,6 @@
 
 #include "structs.h"
 
-MC* mmc_mcg(TAC*);
-
 MC *mmc_mcg_bb(BB*);
 
 #endif //MINUS2C_MCG_H

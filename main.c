@@ -376,7 +376,7 @@ int main(int argc, char** argv)
         if (strncmp(argv[i], "-t", 2) == 0) {
             tac = 1;
         }
-        if (strncmp(argv[i], "-m", 2) == 0) {
+        if (strncmp(argv[i], "-c", 2) == 0) {
             machine = 1;
         }
     }

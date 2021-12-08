@@ -16,6 +16,7 @@ MC* new_mci(char* s)
 
 void mmc_print_mc(MC* i)
 {
-    if (i->next!=NULL) mmc_print_mc(i->next);
-    printf("%s\n",i->insn);
+    for (MC *curr = i; curr != NULL; curr = curr->next) {
+        printf("%s\n",curr->insn);
+    }
 }

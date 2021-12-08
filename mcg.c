@@ -4,6 +4,8 @@
 #include "tac.h"
 #include "mc.h"
 
+MC *first = NULL;
+
 MC *append_mc(MC *pre, MC *post)
 {
     MC *n = post;
@@ -16,55 +18,56 @@ MC *mcg_compute_if(TAC *i, MC *prev)
 {
     MC *this;
     MC *next;
+    TAC *cond = i->args.tacif.cond;
     char *label = i->args.tacif.label->name->lexeme;
     char *insn = (char*)malloc(50 * sizeof(char));
 
-    switch (i->args.tacif.cond->op) {
+    switch (cond->op) {
         case tac_eq:
-            sprintf(insn, "beq $%s, $%s, %s", i->args.tacif.cond->args.line.src1->lexeme, i->args.tacif.cond->args.line.src2->lexeme, label);
+            sprintf(insn, "beq $%s, $%s, %s", cond->args.line.src1->lexeme, i->args.tacif.cond->args.line.src2->lexeme, label);
             this = new_mci(insn);
-            this->next = prev;
+            prev->next = this;
             return this;
         case tac_ne:
-            sprintf(insn, "bne $%s, $%s, %s", i->args.tacif.cond->args.line.src1->lexeme, i->args.tacif.cond->args.line.src2->lexeme, label);
+            sprintf(insn, "bne $%s, $%s, %s", cond->args.line.src1->lexeme, i->args.tacif.cond->args.line.src2->lexeme, label);
             this = new_mci(insn);
-            this->next = prev;
+            prev->next = this;
             return this;
         case tac_ge:
             sprintf(insn, "slt $at $%s, $%s", i->args.line.src1->lexeme, i->args.line.src2->lexeme);
             this = new_mci(insn);
-            this->next = prev;
+            prev->next = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "beq $at $zero %s", label);
             next = new_mci(insn);
-            next->next = this;
+            this->next = next;
             return next;
         case tac_gt:
             sprintf(insn, "slt $at $%s, $%s", i->args.line.src2->lexeme, i->args.line.src1->lexeme);
             this = new_mci(insn);
-            this->next = prev;
+            prev->next = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "bne $at $zero %s", label);
             next = new_mci(insn);
-            next->next = this;
+            this->next = next;
             return next;
         case tac_le:
             sprintf(insn, "slt $at $%s, $%s", i->args.line.src2->lexeme, i->args.line.src1->lexeme);
             this = new_mci(insn);
-            this->next = prev;
+            prev->next = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "beq $at $zero %s", label);
             next = new_mci(insn);
-            next->next = this;
+            this->next = next;
             return next;
         case tac_lt:
             sprintf(insn, "slt $at $%s, $%s", i->args.line.src1->lexeme, i->args.line.src2->lexeme);
             this = new_mci(insn);
-            this->next = prev;
+            prev->next = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "bne $at $zero %s", label);
             next = new_mci(insn);
-            next->next = this;
+            this->next = next;
             return next;
         default:
             return NULL;
@@ -97,14 +100,17 @@ MC *mcg_compute_proc(TAC *i, MC *prev)
     next->next = this;
     this = next;
 
+    // Switch mcg to not use recursion?
+
     // Do I need to reverse order of TAC procs to ensure setup in correct
     // order for MC generation.
 }
 
-MC* mmc_mcg(TAC* i)
+MC* mmc_mcg(TAC* i, MC *p)
 {
-    if (i==NULL) return NULL;
-    MC *prev = mmc_mcg(i->next);
+    if (i==NULL) return p;
+    if (first==NULL && p!=NULL) first = p;
+    MC *prev = p;
 
     MC *this;
     char *insn = (char*)malloc(50 * sizeof(char));
@@ -129,7 +135,7 @@ MC* mmc_mcg(TAC* i)
             printf("mod\n");
             sprintf(insn, "div $%s, $%s", i->args.line.src1->lexeme, i->args.line.src2->lexeme);
             this = new_mci(insn);
-            this->next = prev;
+            prev->next = this;
             prev = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "mfhi $%s", i->args.line.dst->lexeme);
@@ -154,13 +160,14 @@ MC* mmc_mcg(TAC* i)
             printf("div\n");
             sprintf(insn, "div $%s, $%s", i->args.line.src1->lexeme, i->args.line.src2->lexeme);
             this = new_mci(insn);
-            this->next = prev;
+            prev->next = this;
             prev = this;
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "mflo $%s", i->args.line.dst->lexeme);
             this = new_mci(insn);
             break;
-//        case tac_return:
+        case tac_return:
+            return prev;
 //            if (i->args.line.src1->type == CONSTANT)
 //                printf("%s %d\n",
 //                       tac_ops[i->op],
@@ -171,8 +178,10 @@ MC* mmc_mcg(TAC* i)
 //                       i->args.line.src1->lexeme);
 //            break;
         case tac_proc:
+            return mmc_mcg(i->next, prev);
             return mcg_compute_proc(i, prev);
         case tac_endproc:
+            return mmc_mcg(i->next, prev);
             break;
         case tac_label:
             printf("label\n");
@@ -180,7 +189,8 @@ MC* mmc_mcg(TAC* i)
             this = new_mci(insn);
             break;
         case tac_if:
-            return mcg_compute_if(i, prev);
+            this = mcg_compute_if(i, prev);
+            break;
         case tac_goto:
             printf("goto\n");
             sprintf(insn, "j %s", i->args.tacgoto.label->name->lexeme);
@@ -192,26 +202,51 @@ MC* mmc_mcg(TAC* i)
         case tac_gt:
         case tac_le:
         case tac_lt:
-            return prev;
+            return mmc_mcg(i->next, prev);
         default:
             printf("unknown type code %d (%p) in mmc_mcg\n",i->op,i);
             return prev;
     }
 
-    this->next = prev;
-    return this;
+    if (prev != NULL) prev->next = this;
+    return mmc_mcg(i->next, this);
+}
+
+typedef struct tqueue {
+    TAC *start;
+    TAC *end;
+} TQUEUE;
+
+TQUEUE *tqueue_create(TAC *tac)
+{
+    TQUEUE *tq = (TQUEUE*)malloc(sizeof(TQUEUE));
+    tq->start = tac;
+    tq->end = tac;
+    return tq;
+}
+
+TQUEUE *reverse_tac(TAC *tac)
+{
+    if (tac->next == NULL) return tqueue_create(tac);
+    else {
+        TQUEUE *tq = reverse_tac(tac->next);
+        tq->end->next = tac;
+        tq->end = tac;
+        return tq;
+    }
 }
 
 MC *mmc_mcg_bb(BB *bb)
 {
-    MC *next = NULL;
-    if (bb->next != NULL) next = mmc_mcg_bb(bb->next);
+    BB *prev = bb;
+    BB *curr = bb->next;
+    for (; curr != NULL; prev = curr, curr = curr->next) {
+        prepend_tac(curr->leader, prev->leader);
+    }
 
-    MC *this = mmc_mcg(bb->leader);
+    TQUEUE *tq = reverse_tac(bb->leader);
 
-    MC *n = this;
-    while (n->next != NULL) n = n->next;
-    n->next = next;
+    mmc_mcg(tq->start, NULL);
 
-    return this;
+    return first;
 }
