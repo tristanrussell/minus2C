@@ -127,6 +127,7 @@ typedef struct ar {
     TOKEN **param; // param0 , ... paramm
     TOKEN **local; // local0 , ... localn
     TOKEN **tmp; //tmp0 , ... tmpn
+    int count;
 } AR;
 
 typedef struct mc {

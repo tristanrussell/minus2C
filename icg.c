@@ -129,6 +129,8 @@ LLIST *getGlobals(NODE *ast)
             return getGlobals(ast->left);
         case ',':
             return join_llist(getGlobals(ast->left), getGlobals(ast->right));
+        case 'D':
+            return getGlobals(ast->left->right->left);
         case LEAF:
             if (ast->left->type == IDENTIFIER) return new_llist((void*)ast->left);
             else return NULL;
@@ -601,7 +603,9 @@ TAC *mmc_icg(NODE* ast)
 TAC *generate_tac(NODE *tree)
 {
     globalAR = (AR*)malloc(sizeof(AR));
-    globalAR->local = convert_token_array(getGlobals(tree));
+    LLIST *locals = getGlobals(tree);
+    globalAR->local = convert_token_array(locals);
+    globalAR->count = count_list(locals);
     return mmc_icg(tree);
 }
 
