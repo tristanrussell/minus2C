@@ -397,7 +397,7 @@ int main(int argc, char** argv)
     }
 
     if (tac || machine) {
-        TAC *tacSeq = mmc_icg(tree);
+        TAC *tacSeq = generate_tac(tree);
         tacSeq = tac_optimise(tacSeq);
         BB *bbSeq = bb_create(tacSeq);
         if (tac) bb_print(bbSeq);

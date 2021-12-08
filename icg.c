@@ -6,6 +6,8 @@
 #include "C.tab.h"
 #include "token.h"
 
+static AR *globalAR = NULL;
+
 typedef struct llist {
     void *item;
     struct llist *next;
@@ -104,6 +106,32 @@ LLIST *getArgs(NODE *ast)
         case APPLY:
         case LEAF:
             return new_llist((void*)ast->left);
+        default:
+            return NULL;
+    }
+}
+
+LLIST *getGlobals(NODE *ast)
+{
+    LLIST *left;
+    LLIST *right;
+
+    switch (ast->type) {
+        case ';':
+        case '~':
+            left = getGlobals(ast->left);
+            right = getGlobals(ast->right);
+            if (left == NULL && right == NULL) return NULL;
+            if (left == NULL) return right;
+            if (right == NULL) return left;
+            return join_llist(left, right);
+        case '=':
+            return getGlobals(ast->left);
+        case ',':
+            return join_llist(getGlobals(ast->left), getGlobals(ast->right));
+        case LEAF:
+            if (ast->left->type == IDENTIFIER) return new_llist((void*)ast->left);
+            else return NULL;
         default:
             return NULL;
     }
@@ -570,6 +598,13 @@ TAC *mmc_icg(NODE* ast)
     }
 }
 
+TAC *generate_tac(NODE *tree)
+{
+    globalAR = (AR*)malloc(sizeof(AR));
+    globalAR->local = convert_token_array(getGlobals(tree));
+    return mmc_icg(tree);
+}
+
 void remove_blocks(TAC *tac)
 {
     int count = 0;
@@ -607,7 +642,7 @@ void remove_blocks(TAC *tac)
 void add_static_links(TAC *tac)
 {
     TAC *curr = tac;
-    AR *ar = NULL;
+    AR *ar = globalAR;
 
     while (curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
 
@@ -645,8 +680,6 @@ TAC *flatten_proc_rec(TAC *tac)
 void flatten_procedures(TAC *tac)
 {
     TAC *curr = tac;
-    int level = 0;
-    TAC *procs = NULL;
     TAC *next = NULL;
 
     while(curr->op != tac_endproc && curr->next != NULL) curr = curr->next;

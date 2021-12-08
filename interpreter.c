@@ -127,13 +127,6 @@ VALUE *read_int()
     return new_return(new_int(toReturn));
 }
 
-VALUE *premain(NODE *tree, FRAME *frame)
-{
-    // Do stuff
-
-    return interpret(tree, frame);
-}
-
 VALUE *interpret(NODE *tree, FRAME *frame)
 {
     TOKEN *t = (TOKEN *)tree;
