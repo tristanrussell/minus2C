@@ -5,48 +5,9 @@
 #include "tac.h"
 #include "C.tab.h"
 #include "token.h"
+#include "llist.h"
 
 static AR *globalAR = NULL;
-
-typedef struct llist {
-    void *item;
-    struct llist *next;
-} LLIST;
-
-LLIST *new_llist(void *item)
-{
-    LLIST *ret = (LLIST*)malloc(sizeof(LLIST));
-    ret->item = item;
-    ret->next = NULL;
-    return ret;
-}
-
-LLIST *join_llist(LLIST *list, LLIST *next)
-{
-    LLIST *curr = list;
-    while (curr->next != NULL) curr = curr->next;
-    curr->next = next;
-    return list;
-}
-
-LLIST *append_llist(LLIST *list, void *next)
-{
-    LLIST *curr = list;
-    while (curr->next != NULL) curr = curr->next;
-    curr->next = new_llist(next);
-    return list;
-}
-
-int count_list(LLIST *list)
-{
-    LLIST *curr = list;
-    int count = 0;
-    while (curr != NULL) {
-        count++;
-        curr = curr->next;
-    }
-    return count;
-}
 
 TOKEN **convert_token_array(LLIST *list)
 {
@@ -91,6 +52,8 @@ LLIST *getLocals(NODE *ast)
             return join_llist(getLocals(ast->left), getLocals(ast->right));
         case '~':
             return getLocals(ast->right);
+        case 'D':
+            return new_llist((void*)ast->left->right->left->left);
         case LEAF:
             return new_llist((void*)ast->left);
         default:
@@ -130,7 +93,7 @@ LLIST *getGlobals(NODE *ast)
         case ',':
             return join_llist(getGlobals(ast->left), getGlobals(ast->right));
         case 'D':
-            return getGlobals(ast->left->right->left);
+            return new_llist((void*)ast->left->right->left->left);
         case LEAF:
             if (ast->left->type == IDENTIFIER) return new_llist((void*)ast->left);
             else return NULL;
