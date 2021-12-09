@@ -666,6 +666,7 @@ void add_static_links(TAC *tac)
 
 TAC *flatten_proc_rec(TAC *tac)
 {
+    TAC *ret = tac;
     TAC *end = tac->args.endproc.start;
     TAC *curr = tac->next;
     TAC *prev = tac;
@@ -674,11 +675,12 @@ TAC *flatten_proc_rec(TAC *tac)
         else if (curr->op == tac_endproc) {
             prev->next = curr->args.endproc.start->next;
             curr->args.endproc.start->next = NULL;
-            prepend_tac(flatten_proc_rec(curr), prev);
+            ret = flatten_proc_rec(curr);
+            prepend_tac(tac, ret);
             curr = prev;
         }
     }
-    return tac;
+    return ret;
 }
 
 void flatten_procedures(TAC *tac)
@@ -713,9 +715,10 @@ TAC *remove_post_main(TAC *tac)
 TAC *tac_optimise(TAC *tac)
 {
     remove_blocks(tac);
-    add_static_links(tac);
-    flatten_procedures(tac);
-    return remove_post_main(tac);
+    TAC *ret = remove_post_main(tac);
+    add_static_links(ret);
+    flatten_procedures(ret);
+    return ret;
 }
 
 BB *bb_create(TAC* seq)
