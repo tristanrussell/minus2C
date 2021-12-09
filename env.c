@@ -149,7 +149,6 @@ VALUE *declare_closure(TOKEN *name, FRAME *frame, NODE *code, NODE *ids, int typ
     }
     bindings = frame->bindings;
     BINDING *newBind = malloc(sizeof(BINDING));
-    printf("Declaration: %d\n", name);
     if (newBind != NULL) {
         newBind->name = name;
         newBind->val = new_closure(frame, code);

@@ -39,7 +39,6 @@ VALUE *create_vars(NODE *tree, FRAME *frame, int type)
             val = create_vars(tree->left, frame, type);
             break;
         case IDENTIFIER:
-            printf("%s\n", t->lexeme);
             val = declare_name(t, frame, type);
     }
 
@@ -90,8 +89,6 @@ VALUE *lexical_call_method(TOKEN *name, NODE *args, FRAME *env)
         else if (strcmp(name->lexeme, "read_int") == 0) return read_int();
         printf("Non-existent function called.");
         exit(EXIT_FAILURE);
-    } else {
-        printf("Found:%s\n", name->lexeme);
     }
     CLOSURE *f = v->v.closure;
     FRAME *newenv = extend_frame(env, f->ids, args);
@@ -136,7 +133,6 @@ VALUE *interpret(NODE *tree, FRAME *frame)
     switch (tree->type) {
         default: printf("???\n"); return NULL;
         case '%':
-            printf("%%\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -146,7 +142,6 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case '*':
-            printf("*\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -156,7 +151,6 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case '+':
-            printf("+\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -166,7 +160,6 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case '-':
-            printf("-\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -176,7 +169,6 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case '/':
-            printf("/\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -186,12 +178,10 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case ';':
-            printf(";\n");
             leftLeaf = interpret(tree->left, frame);
             if (leftLeaf != NULL && leftLeaf->type == CONTINUE) return leftLeaf;
             return interpret(tree->right, frame);
         case '<':
-            printf("<\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -201,14 +191,12 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case '=':
-            printf("=\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (rightLeaf->type == IDENTIFIER) rightLeaf = lookup_name((TOKEN*)rightLeaf, frame);
             assign_name((TOKEN*)leftLeaf, frame, rightLeaf);
             return NULL;
         case '>':
-            printf(">\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -218,16 +206,12 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case 'D':
-            printf("D\n");
             return create_closure(tree, frame);
         case 'F':
-            printf("F\n");
             return NULL;
         case 'd':
-            printf("d\n");
             return NULL;
         case '~':
-            printf("~\n");
             if (tree->left->type == '~' || tree->left->type == 'D') {
                 leftLeaf = interpret(tree->left, frame);
                 if (leftLeaf != NULL && leftLeaf->type == mmcRETURN) return leftLeaf;
@@ -236,17 +220,12 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             } else create_vars(tree->right, frame, interpret(tree->left, frame)->type);
             return NULL;
         case IDENTIFIER:
-            printf("id\n");
-            printf("%s\n", t->lexeme);
             return (VALUE*)tree;
         case CONSTANT:
-            printf("const\n");
             return new_int(t->value);
         case STRING_LITERAL:
-            printf("string\n");
             return (VALUE*)tree;
         case LE_OP:
-            printf("<=\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -256,7 +235,6 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case GE_OP:
-            printf(">=\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -266,7 +244,6 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case EQ_OP:
-            printf("==\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -276,7 +253,6 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             }
             return NULL;
         case NE_OP:
-            printf("!=\n");
             leftLeaf = interpret(tree->left, frame);
             rightLeaf = interpret(tree->right, frame);
             if (leftLeaf->type == IDENTIFIER) leftLeaf = lookup_name((TOKEN*)leftLeaf, frame);
@@ -285,31 +261,19 @@ VALUE *interpret(NODE *tree, FRAME *frame)
                 return new_int(leftLeaf->v.integer != rightLeaf->v.integer);
             }
             return NULL;
-        case EXTERN:
-            printf("extern\n");
-            return NULL;
-        case AUTO:
-            printf("auto\n");
-            return NULL;
         case INT:
-            printf("int\n");
             return (VALUE*)tree;
         case VOID:
-            printf("void\n");
             return NULL;
         case FUNCTION:
-            printf("function\n");
             return (VALUE*)tree;
         case APPLY:
-            printf("apply\n");
             leftLeaf = lexical_call_method((TOKEN*)interpret(tree->left, frame), tree->right, frame);
             if (leftLeaf != NULL && leftLeaf->type == mmcRETURN) return leftLeaf->v.ret;
             else return NULL;
         case LEAF:
-            printf("leaf\n");
             return interpret(tree->left, frame);
         case IF:
-            printf("if\n");
             leftLeaf = interpret(tree->left, frame);
 
             if (leftLeaf == NULL) {
@@ -322,23 +286,18 @@ VALUE *interpret(NODE *tree, FRAME *frame)
                 }
             }
         case ELSE:
-            printf("else\n");
             return NULL;
         case WHILE:
-            printf("while\n");
             while (interpret(tree->left, frame)->v.integer) {
                 VALUE *ret = interpret(tree->right, frame);
                 if (ret != NULL && ret->type == BREAK) break;
             }
             return NULL;
         case CONTINUE:
-            printf("continue\n");
             return (VALUE*)tree;
         case BREAK:
-            printf("break\n");
             return (VALUE*)tree;
         case RETURN:
-            printf("return\n");
             leftLeaf = interpret(tree->left, frame);
             if (leftLeaf->type == IDENTIFIER) {
                 return new_return(lookup_name((TOKEN*)leftLeaf, frame));
