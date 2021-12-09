@@ -4,10 +4,13 @@
 #include "mcg.h"
 #include "tac.h"
 #include "mc.h"
+#include "llist.h"
 
 MC *first = NULL;
 MC *premain = NULL;
 AR *globalAR = NULL;
+
+LLIST *procs = NULL;
 
 MC *append_mc(MC *pre, MC *post)
 {
@@ -27,13 +30,16 @@ MC *mcg_compute_proc(TAC *i, MC *p)
     MC *this;
     char *insn = (char*)malloc(50 * sizeof(char));
 
-    sprintf(insn, "entry_%s", i->args.proc.name->lexeme);
+    if (strcmp(i->args.proc.name->lexeme, "main") == 0)
+        sprintf(insn, "main:");
+    else
+        sprintf(insn, "entry_%s:", i->args.proc.name->lexeme);
     this = new_mci(insn);
     prev->next = this;
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "li $a0, %d", 12 + 4*(numArgs + numLocals));
+    sprintf(insn, "li $a0, %d", 4 * (3 + numArgs + numLocals));
     this = new_mci(insn);
     prev->next = this;
     prev = this;
@@ -45,21 +51,103 @@ MC *mcg_compute_proc(TAC *i, MC *p)
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "store $fp, 0($v0)");
+    sprintf(insn, "sw $fp, 0($v0)");
     this = new_mci(insn);
     prev->next = this;
     prev = this;
 
-    // Do I need to reverse order of TAC procs to ensure setup in correct
-    // order for MC generation.
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "sw $ra, 4($v0)");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "sw $a0, 8($v0)");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "move $fp, $v0");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    for (int j = 0; j < numArgs; j++) {
+        int off = (3 + j) * 4;
+        ar->param[j]->value = off;
+        insn = (char*)malloc(50 * sizeof(char));
+        if (j < 4) sprintf(insn, "sw $a%d, %d($fp)", j, off);
+        else if (j < 14) sprintf(insn, "sw $t%d, %d($fp)", j - 4, off);
+        else {
+            printf("Too many arguments.");
+            exit(EXIT_FAILURE);
+        }
+        this = new_mci(insn);
+        prev->next = this;
+        prev = this;
+    }
+
+    for (int j = 0; j < numLocals; j++) {
+        TOKEN *t = ar->local[j];
+        t->value = (3 + numArgs + j) * 4;
+        if (find_list(procs, t)) {
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "li $a0, 8");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "syscall sbrk");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "sw $fp, 0($v0)");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "sw entry_%s, 4($v0)", t->lexeme);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "sw $v0, %d($v0)", t->value);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+        }
+    }
 }
 
 MC *mcg_premain(TAC *i, MC *p)
 {
     MC *prev = p;
     MC *this;
-    char *insn = (char*)malloc(50 * sizeof(char));
 
+    for (TAC *a = i; a != NULL; a = a->next) {
+        if (a->op == tac_proc) {
+            if (procs == NULL) {
+                procs = new_llist(a->args.proc.name);
+            } else {
+                append_llist(procs, a->args.proc.name);
+            }
+        }
+    }
+
+    char *insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "premain:");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
     sprintf(insn, "li $a0, %d", 4 * (globalAR->count));
     this = new_mci(insn);
     prev->next = this;
@@ -79,111 +167,125 @@ MC *mcg_premain(TAC *i, MC *p)
 
     for (int j = 0; j < globalAR->count; j++) {
         TOKEN *t = globalAR->local[j];
-        if (strcmp(t->lexeme, "main") == 0) break;
         t->value = j * 4;
+        if (find_list(procs, t)) {
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "li $a0, 8");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "syscall sbrk");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "sw $fp, 0($v0)");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "sw entry_%s, 4($v0)", t->lexeme);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "sw $v0, %d($v0)", t->value);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+        }
     }
 
     for (TAC *curr = i; curr != NULL; curr = curr->next) {
         switch (curr->op) {
             case tac_load_const:
                 printf("load_const\n");
-                sprintf(insn, "li $%s, %d", i->args.line.dst->lexeme, i->args.line.src1->value);
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "li $%s, %d", curr->args.line.dst->lexeme, curr->args.line.src1->value);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 break;
             case tac_load_id:
                 printf("load_id\n");
-                sprintf(insn, "lw $%s, %s", i->args.line.dst->lexeme, i->args.line.src1->lexeme);
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "lw $%s, %s", curr->args.line.dst->lexeme, curr->args.line.src1->lexeme);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 break;
             case tac_store:
                 printf("store\n");
-                sprintf(insn, "sw $%s, %d($fp)", i->args.line.src1->lexeme, i->args.line.dst->value);
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "sw $%s, %d($fp)", curr->args.line.src1->lexeme, curr->args.line.dst->value);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 break;
             case tac_mod:
                 printf("mod\n");
-                sprintf(insn, "div $%s, $%s", i->args.line.src1->lexeme, i->args.line.src2->lexeme);
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "div $%s, $%s", curr->args.line.src1->lexeme, curr->args.line.src2->lexeme);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "mfhi $%s", i->args.line.dst->lexeme);
+                sprintf(insn, "mfhi $%s", curr->args.line.dst->lexeme);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 break;
             case tac_times:
                 printf("multiply\n");
-                sprintf(insn, "mul $%s, $%s, $%s", i->args.line.dst->lexeme, i->args.line.src1->lexeme, i->args.line.src2->lexeme);
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "mul $%s, $%s, $%s", curr->args.line.dst->lexeme, curr->args.line.src1->lexeme, curr->args.line.src2->lexeme);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 break;
             case tac_plus:
                 printf("add\n");
-                sprintf(insn, "add $%s, $%s, $%s", i->args.line.dst->lexeme, i->args.line.src1->lexeme, i->args.line.src2->lexeme);
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "add $%s, $%s, $%s", curr->args.line.dst->lexeme, curr->args.line.src1->lexeme, curr->args.line.src2->lexeme);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 break;
             case tac_sub:
                 printf("sub\n");
-                sprintf(insn, "sub $%s, $%s, $%s", i->args.line.dst->lexeme, i->args.line.src1->lexeme, i->args.line.src2->lexeme);
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "sub $%s, $%s, $%s", curr->args.line.dst->lexeme, curr->args.line.src1->lexeme, curr->args.line.src2->lexeme);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 break;
             case tac_div:
                 printf("div\n");
-                sprintf(insn, "div $%s, $%s", i->args.line.src1->lexeme, i->args.line.src2->lexeme);
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "div $%s, $%s", curr->args.line.src1->lexeme, curr->args.line.src2->lexeme);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "mflo $%s", i->args.line.dst->lexeme);
+                sprintf(insn, "mflo $%s", curr->args.line.dst->lexeme);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
                 break;
             case tac_proc:
-                printf("proc\n");
-                sprintf(insn, "li $a0, 8");
-                this = new_mci(insn);
-                prev->next = this;
-                prev = this;
-
-                insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "syscall sbrk");
-                this = new_mci(insn);
-                prev->next = this;
-                prev = this;
-
-                insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "sw $fp, 0($v0)");
-                this = new_mci(insn);
-                prev->next = this;
-                prev = this;
-
-                insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "sw entry_%s, 4($v0)", i->args.proc.name->lexeme);
-                this = new_mci(insn);
-                prev->next = this;
-                prev = this;
-
-                insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "sw $v0, %d($v0)", i->args.proc.name->value);
-                this = new_mci(insn);
-                prev->next = this;
-                prev = this;
-
                 while (curr->op != tac_endproc) curr = curr->next;
                 break;
+        }
+    }
+
+    for (TAC *curr = i; curr != NULL; curr = curr->next) {
+        if (curr->op == tac_proc) {
+            mcg_compute_proc(curr, this);
         }
     }
 }
@@ -321,10 +423,8 @@ MC* mmc_mcg(TAC* i, MC *p)
 //            break;
         case tac_proc:
             return mmc_mcg(i->next, prev);
-            return mcg_compute_proc(i, prev);
         case tac_endproc:
-            return mmc_mcg(i->next, prev);
-            break;
+            return first;
         case tac_label:
             printf("label\n");
             sprintf(insn, "%s:\t", i->args.taclabel.name->lexeme);
