@@ -45,9 +45,9 @@ TAC *new_proc_tac(TOKEN *name, int arity)
     TAC *procTac = (TAC*)malloc(sizeof(TAC));
     procTac->op = tac_proc;
     procTac->args.proc.name = name;
-    procTac->args.proc.arity = arity;
-    procTac->args.proc.localCount = 0;
     procTac->args.proc.ar = (AR*)malloc(sizeof(AR));
+    procTac->args.proc.ar->arity = arity;
+    procTac->args.proc.ar->localCount = 0;
     return procTac;
 }
 
@@ -80,8 +80,8 @@ TAC *new_call_tac(TOKEN *name, int arity)
     TAC *callTac = (TAC*)malloc(sizeof(TAC));
     callTac->op = tac_call;
     callTac->args.call.name = name;
-    callTac->args.call.arity = arity;
     callTac->args.call.ar = (AR*)malloc(sizeof(AR));
+    callTac->args.call.ar->arity = arity;
     return callTac;
 }
 
@@ -162,8 +162,8 @@ void mmc_print_ic(TAC* i, int ind)
             printf("%s %s, %d, %d\n",
                    tac_ops[i->op],
                    i->args.proc.name->lexeme,
-                   i->args.proc.arity,
-                   i->args.proc.localCount);
+                   i->args.proc.ar->arity,
+                   i->args.proc.ar->localCount);
             break;
         case tac_endproc:
             printf("%s\n", tac_ops[i->op]);
@@ -180,7 +180,7 @@ void mmc_print_ic(TAC* i, int ind)
             printf("%s %s, %d\n",
                    tac_ops[i->op],
                    i->args.call.name->lexeme,
-                   i->args.call.arity);
+                   i->args.call.ar->arity);
             break;
         case tac_label:
             printf("%s %s\n",

@@ -365,7 +365,7 @@ TAC *tac_compute_call(NODE *ast)
 //        curr = curr->next;
 //    }
 
-    ret->args.call.arity = numArgs;
+    ret->args.call.ar->arity = numArgs;
     return ret;
 }
 
@@ -568,7 +568,7 @@ TAC *generate_tac(NODE *tree)
     globalAR = (AR*)malloc(sizeof(AR));
     LLIST *locals = getGlobals(tree);
     globalAR->local = convert_token_array(locals);
-    globalAR->count = count_list(locals);
+    globalAR->localCount = count_list(locals);
     return mmc_icg(tree);
 }
 
@@ -598,7 +598,7 @@ void remove_blocks(TAC *tac)
             remove_blocks(curr);
             curr = curr->args.endproc.start;
         } else if (curr->op == tac_proc) {
-            curr->args.proc.localCount = count;
+            curr->args.proc.ar->localCount = count;
             curr->args.proc.ar->local = convert_token_array(list->next);
             if (curr->next != NULL) remove_blocks(curr->next);
             return;
@@ -610,6 +610,7 @@ void add_static_links(TAC *tac)
 {
     TAC *curr = tac;
     AR *ar = globalAR;
+    printf("%d\n", globalAR->localCount);
 
     while (curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
 

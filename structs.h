@@ -62,8 +62,6 @@ typedef struct token {
 typedef struct proc {
     TOKEN* name;
     AR* ar;
-    int arity;
-    int localCount;
 } PROC;
 
 typedef struct endproc {
@@ -78,7 +76,6 @@ typedef struct block {
 typedef struct call {
     TOKEN* name;
     AR* ar;
-    int arity;
 } CALL;
 
 typedef struct line {
@@ -125,9 +122,11 @@ typedef struct ar {
     char pc; // save caller ’s PC
     AR *sl; // this function ’s static link
     TOKEN **param; // param0 , ... paramm
+    int arity;
     TOKEN **local; // local0 , ... localn
+    int localCount;
     TOKEN **tmp; //tmp0 , ... tmpn
-    int count;
+    int tmpCount;
 } AR;
 
 typedef struct mc {

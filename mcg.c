@@ -5,6 +5,7 @@
 #include "tac.h"
 #include "mc.h"
 #include "llist.h"
+#include "C.tab.h"
 
 MC *first = NULL;
 MC *premain = NULL;
@@ -22,16 +23,17 @@ MC *append_mc(MC *pre, MC *post)
 
 MC *mcg_compute_proc(TAC *i, MC *p)
 {
-    int numArgs = i->args.proc.arity;
-    int numLocals = i->args.proc.localCount;
+    int numArgs = i->args.proc.ar->arity;
+    int numLocals = i->args.proc.ar->localCount;
     AR *ar = i->args.proc.ar;
 
     MC *prev = p;
     MC *this;
     char *insn = (char*)malloc(50 * sizeof(char));
 
-    if (strcmp(i->args.proc.name->lexeme, "main") == 0)
+    if (strcmp(i->args.proc.name->lexeme, "main") == 0) {
         sprintf(insn, "main:");
+    }
     else
         sprintf(insn, "entry_%s:", i->args.proc.name->lexeme);
     this = new_mci(insn);
@@ -118,21 +120,24 @@ MC *mcg_compute_proc(TAC *i, MC *p)
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "sw $v0, %d($v0)", t->value);
+            sprintf(insn, "sw $v0, %d($fp)", t->value);
             this = new_mci(insn);
             prev->next = this;
             prev = this;
         }
     }
+
+    return mmc_mcg(i->next, this, ar);
 }
 
 MC *mcg_premain(TAC *i, MC *p)
 {
-    MC *prev = p;
+    MC *prev;
     MC *this;
 
     for (TAC *a = i; a != NULL; a = a->next) {
         if (a->op == tac_proc) {
+            printf("%s\n", a->args.proc.name->lexeme);
             if (procs == NULL) {
                 procs = new_llist(a->args.proc.name);
             } else {
@@ -144,11 +149,11 @@ MC *mcg_premain(TAC *i, MC *p)
     char *insn = (char*)malloc(50 * sizeof(char));
     sprintf(insn, "premain:");
     this = new_mci(insn);
-    prev->next = this;
+    first = this;
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "li $a0, %d", 4 * (globalAR->count));
+    sprintf(insn, "li $a0, %d", 4 * (globalAR->localCount));
     this = new_mci(insn);
     prev->next = this;
     prev = this;
@@ -165,7 +170,7 @@ MC *mcg_premain(TAC *i, MC *p)
     prev->next = this;
     prev = this;
 
-    for (int j = 0; j < globalAR->count; j++) {
+    for (int j = 0; j < globalAR->localCount; j++) {
         TOKEN *t = globalAR->local[j];
         t->value = j * 4;
         if (find_list(procs, t)) {
@@ -194,13 +199,14 @@ MC *mcg_premain(TAC *i, MC *p)
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "sw $v0, %d($v0)", t->value);
+            sprintf(insn, "sw $v0, %d($fp)", t->value);
             this = new_mci(insn);
             prev->next = this;
             prev = this;
         }
     }
 
+    // Variable setting in global scope.
     for (TAC *curr = i; curr != NULL; curr = curr->next) {
         switch (curr->op) {
             case tac_load_const:
@@ -285,9 +291,11 @@ MC *mcg_premain(TAC *i, MC *p)
 
     for (TAC *curr = i; curr != NULL; curr = curr->next) {
         if (curr->op == tac_proc) {
-            mcg_compute_proc(curr, this);
+            this = mcg_compute_proc(curr, this);
         }
     }
+
+    return first;
 }
 
 MC *mcg_compute_if(TAC *i, MC *prev)
@@ -350,10 +358,14 @@ MC *mcg_compute_if(TAC *i, MC *prev)
     }
 }
 
-MC* mmc_mcg(TAC* i, MC *p)
+//char *find_ref(TOKEN *t, AR *ar)
+//{
+//
+//}
+
+MC* mmc_mcg(TAC* i, MC *p, AR *ar)
 {
     if (i==NULL) return p;
-    if (first==NULL && p!=NULL) first = p;
     MC *prev = p;
 
     MC *this;
@@ -411,20 +423,23 @@ MC* mmc_mcg(TAC* i, MC *p)
             this = new_mci(insn);
             break;
         case tac_return:
-            return mmc_mcg(i->next, prev);
-//            if (i->args.line.src1->type == CONSTANT)
-//                printf("%s %d\n",
-//                       tac_ops[i->op],
-//                       i->args.line.src1->value);
-//            else
-//                printf("%s %s\n",
-//                       tac_ops[i->op],
-//                       i->args.line.src1->lexeme);
-//            break;
+            printf("return\n");
+            if (i->args.line.src1->type == CONSTANT) {
+                sprintf(insn, "li $v0, %d", i->args.line.src1->value);
+                this = new_mci(insn);
+            } else if (i->args.line.src1->type == IDENTIFIER) {
+//                sprintf(insn, "lw $v0, %d", i->args.line.src1);
+//                this = new_mci(insn);
+//                prev->next = this;
+//                prev = this;
+            } else {
+                //
+            }
+            break;
         case tac_proc:
-            return mmc_mcg(i->next, prev);
+            return mmc_mcg(i->next, prev, ar);
         case tac_endproc:
-            return first;
+            return prev;
         case tac_label:
             printf("label\n");
             sprintf(insn, "%s:\t", i->args.taclabel.name->lexeme);
@@ -444,14 +459,14 @@ MC* mmc_mcg(TAC* i, MC *p)
         case tac_gt:
         case tac_le:
         case tac_lt:
-            return mmc_mcg(i->next, prev);
+            return mmc_mcg(i->next, prev, ar);
         default:
             printf("unknown type code %d (%p) in mmc_mcg\n",i->op,i);
             return prev;
     }
 
     if (prev != NULL) prev->next = this;
-    return mmc_mcg(i->next, this);
+    return mmc_mcg(i->next, this, ar);
 }
 
 typedef struct tqueue {
@@ -494,23 +509,21 @@ MC *mmc_mcg_bb(BB *bb)
         printf("Critical error.\n");
         exit(EXIT_FAILURE);
     }
-    if (t->op == tac_proc && strcmp(t->args.proc.name->lexeme, "main") == 0) {
-        mmc_mcg(tq->start, NULL);
-        return first;
-    }
-
-    while(t->next != NULL && t->next->op != tac_proc && strcmp(t->next->args.proc.name->lexeme, "main") != 0)
+//    if (t->op == tac_proc && strcmp(t->args.proc.name->lexeme, "main") == 0) {
+//        mmc_mcg(tq->start, NULL);
+//        return first;
+//    }
+    while(t->next != NULL && (t->next->op != tac_proc || strcmp(t->next->args.proc.name->lexeme, "main") != 0))
         t = t->next;
 
     TAC *main = t->next;
-    t->next = NULL;
+//    t->next = NULL;
 
     globalAR = main->args.proc.ar->sl;
-
     // Need to do register stuff here
 
-    mcg_premain(t, NULL);
-    mmc_mcg(main, NULL);
+    mcg_premain(tq->start, NULL);
+//    mmc_mcg(main, NULL);
 
     return first;
 }

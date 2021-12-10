@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-MC *mmc_mcg(TAC*, MC*);
+MC *mmc_mcg(TAC*, MC*, AR*);
 
 MC *mmc_mcg_bb(BB*);
 
