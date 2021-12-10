@@ -358,10 +358,63 @@ MC *mcg_compute_if(TAC *i, MC *prev)
     }
 }
 
-//char *find_ref(TOKEN *t, AR *ar)
-//{
-//
-//}
+char *find_ref_rec(TOKEN *t, AR *ar)
+{
+    char *ret = (char*)malloc(50 * sizeof(char));
+
+    for (int i = 0; i < ar->arity; i++) {
+        printf("Param: %s\n", ar->param[i]->lexeme);
+        if (ar->param[i] == t) {
+            sprintf(ret, "%d(%%s)", t->value);
+            return ret;
+        }
+    }
+    for (int i = 0; i < ar->localCount; i++) {
+        printf("Local: %s\n", ar->local[i]->lexeme);
+        if (ar->local[i] == t) {
+            sprintf(ret, "%d(%%s)", t->value);
+            return ret;
+        }
+    }
+
+    if (ar->sl == NULL) {
+        printf("Error, variable not found.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    sprintf(ret, find_ref_rec(t, ar->sl), "8(%s)");
+    return ret;
+}
+
+char *find_ref(TOKEN *t, AR *ar)
+{
+    char *ret = (char*)malloc(50 * sizeof(char));
+    printf("%s\n", t->lexeme);
+
+    for (int i = 0; i < ar->arity; i++) {
+        printf("Param: %s\n", ar->param[i]->lexeme);
+        if (ar->param[i] == t) {
+            sprintf(ret, "%d($fp)", t->value);
+            return ret;
+        }
+    }
+
+    for (int i = 0; i < ar->localCount; i++) {
+        printf("Local: %s\n", ar->local[i]->lexeme);
+        if (ar->local[i] == t) {
+            sprintf(ret, "%d($fp)", t->value);
+            return ret;
+        }
+    }
+
+    if (ar->sl == NULL) {
+        printf("Error, variable not found.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    sprintf(ret, find_ref_rec(t, ar->sl), "8($fp)");
+    return ret;
+}
 
 MC* mmc_mcg(TAC* i, MC *p, AR *ar)
 {
@@ -379,12 +432,12 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             break;
         case tac_load_id:
             printf("load_id\n");
-            sprintf(insn, "lw $%s, %s", i->args.line.dst->lexeme, i->args.line.src1->lexeme);
+            sprintf(insn, "lw $%s, %s", i->args.line.dst->lexeme, find_ref(i->args.line.src1, ar));
             this = new_mci(insn);
             break;
         case tac_store:
             printf("store\n");
-            sprintf(insn, "sw $%s, %s", i->args.line.src1->lexeme, i->args.line.dst->lexeme);
+            sprintf(insn, "sw $%s, %s", i->args.line.src1->lexeme, find_ref(i->args.line.dst, ar));
             this = new_mci(insn);
             break;
         case tac_mod:
@@ -428,16 +481,19 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
                 sprintf(insn, "li $v0, %d", i->args.line.src1->value);
                 this = new_mci(insn);
             } else if (i->args.line.src1->type == IDENTIFIER) {
-//                sprintf(insn, "lw $v0, %d", i->args.line.src1);
-//                this = new_mci(insn);
-//                prev->next = this;
-//                prev = this;
+                sprintf(insn, "lw $v0, %s", find_ref(i->args.line.src1, ar));
+                this = new_mci(insn);
+            } else if (i->args.line.src1->type == TEMPORARY && strcmp(i->args.line.src1->lexeme, "rv") == 0) {
+                sprintf(insn, "move $v0, $r0");
+                this = new_mci(insn);
             } else {
-                //
+                sprintf(insn, "move $v0, $%s", i->args.line.src1->lexeme);
+                this = new_mci(insn);
             }
             break;
         case tac_proc:
-            return mmc_mcg(i->next, prev, ar);
+            printf("Error in compilation.\n");
+            exit(EXIT_FAILURE);
         case tac_endproc:
             return prev;
         case tac_label:

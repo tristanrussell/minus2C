@@ -52,6 +52,8 @@ LLIST *getLocals(NODE *ast)
             return join_llist(getLocals(ast->left), getLocals(ast->right));
         case '~':
             return getLocals(ast->right);
+        case '=':
+            return getLocals(ast->left);
         case 'D':
             return new_llist((void*)ast->left->right->left->left);
         case LEAF:
