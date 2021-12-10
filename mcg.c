@@ -80,8 +80,10 @@ MC *mcg_compute_proc(TAC *i, MC *p)
         int off = (3 + j) * 4;
         ar->param[j]->value = off;
         insn = (char*)malloc(50 * sizeof(char));
-        if (j < 4) sprintf(insn, "sw $a%d, %d($fp)", j, off);
-        else if (j < 14) sprintf(insn, "sw $t%d, %d($fp)", j - 4, off);
+        // a0 is used for static link
+        if (j < 3) sprintf(insn, "sw $a%d, %d($fp)", j + 1, off);
+        // t0 is used for jump address
+        else if (j < 12) sprintf(insn, "sw $t%d, %d($fp)", j - 2, off);
         else {
             printf("Too many arguments.");
             exit(EXIT_FAILURE);
@@ -127,7 +129,13 @@ MC *mcg_compute_proc(TAC *i, MC *p)
         }
     }
 
-    return mmc_mcg(i->next, this, ar);
+    prev = mmc_mcg(i->next, this, ar);
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "jr 4($fp)");
+    this = new_mci(insn);
+    prev->next = this;
+    return this;
 }
 
 MC *mcg_premain(TAC *i, MC *p)
@@ -474,23 +482,67 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             printf("return\n");
             if (i->args.line.src1->type == CONSTANT) {
                 sprintf(insn, "li $v0, %d", i->args.line.src1->value);
-                this = new_mci(insn);
             } else if (i->args.line.src1->type == IDENTIFIER) {
                 sprintf(insn, "lw $v0, %s", find_ref(i->args.line.src1, ar));
-                this = new_mci(insn);
             } else if (i->args.line.src1->type == TEMPORARY && strcmp(i->args.line.src1->lexeme, "rv") == 0) {
                 sprintf(insn, "move $v0, $r0");
-                this = new_mci(insn);
             } else {
                 sprintf(insn, "move $v0, $%s", i->args.line.src1->lexeme);
-                this = new_mci(insn);
             }
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "jr 4($fp)");
+            this = new_mci(insn);
             break;
         case tac_proc:
             printf("Error in compilation.\n");
             exit(EXIT_FAILURE);
         case tac_endproc:
             return prev;
+        case tac_call:
+            printf("call\n");
+            char *location = find_ref(i->args.call.name, ar);
+            int arity = i->args.call.ar->arity;
+            TOKEN **args = i->args.call.ar->param;
+            for (int j = 0; j < arity; j++) {
+                char *reg = (char*)malloc(5 * sizeof(char));
+                if (j < 3) sprintf(reg, "$a%d", j + 1);
+                else if (j < 12) sprintf(reg, "$t%d", j - 2);
+                else {
+                    printf("Too many arguments.\n");
+                    exit(EXIT_FAILURE);
+                }
+                if (args[j]->type == CONSTANT) {
+                    sprintf(insn, "li %s, %d", reg, args[j]->value);
+                } else if (args[j]->type == IDENTIFIER) {
+                    sprintf(insn, "lw %s, %s", reg, find_ref(args[j], ar));
+                } else {
+                    printf("Unknown argument type.\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "lw $a0, 0(%s)", location);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "lw $t0, 4(%s)", location);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "jal $t0");
+            this = new_mci(insn);
+            break;
         case tac_label:
             printf("label\n");
             sprintf(insn, "%s:\t", i->args.taclabel.name->lexeme);
