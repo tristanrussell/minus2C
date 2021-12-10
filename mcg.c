@@ -363,14 +363,12 @@ char *find_ref_rec(TOKEN *t, AR *ar)
     char *ret = (char*)malloc(50 * sizeof(char));
 
     for (int i = 0; i < ar->arity; i++) {
-        printf("Param: %s\n", ar->param[i]->lexeme);
         if (ar->param[i] == t) {
             sprintf(ret, "%d(%%s)", t->value);
             return ret;
         }
     }
     for (int i = 0; i < ar->localCount; i++) {
-        printf("Local: %s\n", ar->local[i]->lexeme);
         if (ar->local[i] == t) {
             sprintf(ret, "%d(%%s)", t->value);
             return ret;
@@ -389,10 +387,8 @@ char *find_ref_rec(TOKEN *t, AR *ar)
 char *find_ref(TOKEN *t, AR *ar)
 {
     char *ret = (char*)malloc(50 * sizeof(char));
-    printf("%s\n", t->lexeme);
 
     for (int i = 0; i < ar->arity; i++) {
-        printf("Param: %s\n", ar->param[i]->lexeme);
         if (ar->param[i] == t) {
             sprintf(ret, "%d($fp)", t->value);
             return ret;
@@ -400,7 +396,6 @@ char *find_ref(TOKEN *t, AR *ar)
     }
 
     for (int i = 0; i < ar->localCount; i++) {
-        printf("Local: %s\n", ar->local[i]->lexeme);
         if (ar->local[i] == t) {
             sprintf(ret, "%d($fp)", t->value);
             return ret;
