@@ -366,6 +366,7 @@ TAC *tac_compute_call(NODE *ast)
 //    }
 
     ret->args.call.ar->arity = numArgs;
+    ret->args.call.ar->param = convert_token_array(args);
     return ret;
 }
 
