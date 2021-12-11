@@ -31,11 +31,13 @@ MC *mcg_compute_proc(TAC *i, MC *p)
     MC *this;
     char *insn = (char*)malloc(50 * sizeof(char));
 
-    if (strcmp(i->args.proc.name->lexeme, "main") == 0) {
-        sprintf(insn, "main:");
-    }
-    else
-        sprintf(insn, "entry_%s:", i->args.proc.name->lexeme);
+    sprintf(insn, "entry_%s:", i->args.proc.name->lexeme);
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "li $v0, 9");
     this = new_mci(insn);
     prev->next = this;
     prev = this;
@@ -47,7 +49,7 @@ MC *mcg_compute_proc(TAC *i, MC *p)
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "syscall sbrk");
+    sprintf(insn, "syscall");
     this = new_mci(insn);
     prev->next = this;
     prev = this;
@@ -98,13 +100,19 @@ MC *mcg_compute_proc(TAC *i, MC *p)
         t->value = (3 + numArgs + j) * 4;
         if (find_list(procs, t)) {
             insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "li $v0, 9");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "li $a0, 8");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "syscall sbrk");
+            sprintf(insn, "syscall");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
@@ -116,7 +124,13 @@ MC *mcg_compute_proc(TAC *i, MC *p)
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "sw entry_%s, 4($v0)", t->lexeme);
+            sprintf(insn, "la $t0, entry_%s", t->lexeme);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "sw $t0, 4($v0)");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
@@ -132,7 +146,7 @@ MC *mcg_compute_proc(TAC *i, MC *p)
     prev = mmc_mcg(i->next, this, ar);
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "jr 4($fp)");
+    sprintf(insn, "jr $ra");
     this = new_mci(insn);
     prev->next = this;
     return this;
@@ -142,6 +156,7 @@ MC *mcg_premain(TAC *i, MC *p)
 {
     MC *prev;
     MC *this;
+    TOKEN *m;
 
     for (TAC *a = i; a != NULL; a = a->next) {
         if (a->op == tac_proc) {
@@ -155,9 +170,15 @@ MC *mcg_premain(TAC *i, MC *p)
     }
 
     char *insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "premain:");
+    sprintf(insn, "main:");
     this = new_mci(insn);
     first = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "li $v0, 9");
+    this = new_mci(insn);
+    prev->next = this;
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
@@ -167,7 +188,7 @@ MC *mcg_premain(TAC *i, MC *p)
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "syscall sbrk");
+    sprintf(insn, "syscall");
     this = new_mci(insn);
     prev->next = this;
     prev = this;
@@ -178,10 +199,24 @@ MC *mcg_premain(TAC *i, MC *p)
     prev->next = this;
     prev = this;
 
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "move $gp, $v0");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
     for (int j = 0; j < globalAR->localCount; j++) {
         TOKEN *t = globalAR->local[j];
         t->value = j * 4;
         if (find_list(procs, t)) {
+            if (strcmp(t->lexeme, "main") == 0) m = t;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "li $v0, 9");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "li $a0, 8");
             this = new_mci(insn);
@@ -189,7 +224,7 @@ MC *mcg_premain(TAC *i, MC *p)
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "syscall sbrk");
+            sprintf(insn, "syscall");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
@@ -201,7 +236,13 @@ MC *mcg_premain(TAC *i, MC *p)
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "sw entry_%s, 4($v0)", t->lexeme);
+            sprintf(insn, "la $t0, entry_%s", t->lexeme);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "sw $t0, 4($v0)");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
@@ -297,6 +338,36 @@ MC *mcg_premain(TAC *i, MC *p)
         }
     }
 
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "lw $t0 %d($fp)", m->value);
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "lw $t0 0($t0)");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "lw $a0 %d($fp)", m->value);
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "lw $a0 4($a0)");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "j $a0");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
     for (TAC *curr = i; curr != NULL; curr = curr->next) {
         if (curr->op == tac_proc) {
             this = mcg_compute_proc(curr, this);
@@ -306,7 +377,7 @@ MC *mcg_premain(TAC *i, MC *p)
     return first;
 }
 
-MC *mcg_compute_if(TAC *i, MC *prev)
+MC *mcg_compute_if(TAC *i, MC *prev) // Fix for dynamic allocation
 {
     MC *this;
     MC *next;
@@ -366,57 +437,65 @@ MC *mcg_compute_if(TAC *i, MC *prev)
     }
 }
 
-char *find_ref_rec(TOKEN *t, AR *ar)
+LLIST *find_ref_rec(TOKEN *t, AR *ar)
 {
-    char *ret = (char*)malloc(50 * sizeof(char));
+    int pos = -1;
 
     for (int i = 0; i < ar->arity; i++) {
         if (ar->param[i] == t) {
-            sprintf(ret, "%d(%%s)", t->value);
-            return ret;
+            pos = t->value;
         }
     }
     for (int i = 0; i < ar->localCount; i++) {
         if (ar->local[i] == t) {
-            sprintf(ret, "%d(%%s)", t->value);
-            return ret;
+            pos = t->value;
         }
     }
 
-    if (ar->sl == NULL) {
-        printf("Error, variable not found.\n");
-        exit(EXIT_FAILURE);
-    }
+    if (pos == -1) {
+        if (ar->sl == NULL) {
+            printf("Error, token not found.\n");
+            exit(EXIT_FAILURE);
+        }
 
-    sprintf(ret, find_ref_rec(t, ar->sl), "8(%s)");
-    return ret;
+        pos = 8;
+        LLIST *ret = new_llist(&pos);
+
+        return join_llist(ret, find_ref_rec(t, ar->sl));
+    } else {
+        return new_llist(&pos);
+    }
 }
 
-char *find_ref(TOKEN *t, AR *ar)
+LLIST *find_ref(TOKEN *t, AR *ar)
 {
-    char *ret = (char*)malloc(50 * sizeof(char));
+    int pos = -1;
 
     for (int i = 0; i < ar->arity; i++) {
         if (ar->param[i] == t) {
-            sprintf(ret, "%d($fp)", t->value);
-            return ret;
+            pos = t->value;
         }
     }
 
     for (int i = 0; i < ar->localCount; i++) {
         if (ar->local[i] == t) {
-            sprintf(ret, "%d($fp)", t->value);
-            return ret;
+            pos = t->value;
         }
     }
 
-    if (ar->sl == NULL) {
-        printf("Error, variable not found.\n");
-        exit(EXIT_FAILURE);
-    }
+    if (pos == -1) {
+        if (ar->sl == NULL) {
+            printf("Error, token not found.\n");
+            exit(EXIT_FAILURE);
+        }
 
-    sprintf(ret, find_ref_rec(t, ar->sl), "8($fp)");
-    return ret;
+        pos = 8;
+        LLIST *ret = new_llist(&pos);
+
+        return join_llist(ret, find_ref(t, ar->sl));
+    } else {
+        return new_llist(&pos);
+    }
 }
 
 MC* mmc_mcg(TAC* i, MC *p, AR *ar)
@@ -427,6 +506,9 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
     MC *this;
     char *insn = (char*)malloc(50 * sizeof(char));
 
+    LLIST *ref;
+    char *reg;
+
     switch (i->op) {
         case tac_load_const:
             printf("load_const\n");
@@ -435,12 +517,39 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             break;
         case tac_load_id:
             printf("load_id\n");
-            sprintf(insn, "lw $%s, %s", i->args.line.dst->lexeme, find_ref(i->args.line.src1, ar));
+            ref = find_ref(i->args.line.src1, ar);
+            reg = i->args.line.dst->lexeme;
+            sprintf(insn, "lw $%s, %d($fp)", reg, *(int*)ref->item);
             this = new_mci(insn);
-            break;
+            prev->next = this;
+            prev = this;
+            while (ref->next != NULL) {
+                ref = ref->next;
+
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "lw $%s, %d($%s)", reg, *(int*)ref->item, reg);
+                this = new_mci(insn);
+                prev->next = this;
+                prev = this;
+            }
+            return mmc_mcg(i->next, this, ar);
         case tac_store:
             printf("store\n");
-            sprintf(insn, "sw $%s, %s", i->args.line.src1->lexeme, find_ref(i->args.line.dst, ar));
+            ref = find_ref(i->args.line.dst, ar);
+            sprintf(insn, "lw $a0, %d($fp)", *(int*)ref->item);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+            while (ref->next != NULL) {
+                ref = ref->next;
+
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "lw $a0, %d($a0)", *(int*)ref->item);
+                this = new_mci(insn);
+                prev->next = this;
+                prev = this;
+            }
+            sprintf(insn, "sw $%s, $a0", i->args.line.src1->lexeme);
             this = new_mci(insn);
             break;
         case tac_mod:
@@ -482,18 +591,32 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             printf("return\n");
             if (i->args.line.src1->type == CONSTANT) {
                 sprintf(insn, "li $v0, %d", i->args.line.src1->value);
+                this = new_mci(insn);
+                prev->next = this;
+                prev = this;
             } else if (i->args.line.src1->type == IDENTIFIER) {
-                sprintf(insn, "lw $v0, %s", find_ref(i->args.line.src1, ar));
-            } else if (i->args.line.src1->type == TEMPORARY && strcmp(i->args.line.src1->lexeme, "rv") == 0) {
-                sprintf(insn, "move $v0, $r0");
+                ref = find_ref(i->args.line.src1, ar);
+                sprintf(insn, "lw $v0, %d($fp)", *(int*)ref->item);
+                this = new_mci(insn);
+                prev->next = this;
+                prev = this;
+                while (ref->next != NULL) {
+                    ref = ref->next;
+
+                    insn = (char*)malloc(50 * sizeof(char));
+                    sprintf(insn, "lw $v0, %d($v0)", *(int*)ref->item);
+                    this = new_mci(insn);
+                    prev->next = this;
+                    prev = this;
+                }
             } else {
                 sprintf(insn, "move $v0, $%s", i->args.line.src1->lexeme);
+                this = new_mci(insn);
+                prev->next = this;
+                prev = this;
             }
-            this = new_mci(insn);
-            prev->next = this;
-            prev = this;
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "jr 4($fp)");
+            sprintf(insn, "jr $ra");
             this = new_mci(insn);
             break;
         case tac_proc:
@@ -503,44 +626,78 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             return prev;
         case tac_call:
             printf("call\n");
-            char *location = find_ref(i->args.call.name, ar);
+            ref = find_ref(i->args.call.name, ar);
             int arity = i->args.call.ar->arity;
             TOKEN **args = i->args.call.ar->param;
             for (int j = 0; j < arity; j++) {
-                char *reg = (char*)malloc(5 * sizeof(char));
-                if (j < 3) sprintf(reg, "$a%d", j + 1);
+                char *argReg = (char*)malloc(5 * sizeof(char));
+                if (j < 2) sprintf(reg, "$a%d", j + 2);
                 else if (j < 12) sprintf(reg, "$t%d", j - 2);
                 else {
                     printf("Too many arguments.\n");
                     exit(EXIT_FAILURE);
                 }
                 if (args[j]->type == CONSTANT) {
-                    sprintf(insn, "li %s, %d", reg, args[j]->value);
+                    sprintf(insn, "li %s, %d", argReg, args[j]->value);
+                    this = new_mci(insn);
+                    prev->next = this;
+                    prev = this;
                 } else if (args[j]->type == IDENTIFIER) {
-                    sprintf(insn, "lw %s, %s", reg, find_ref(args[j], ar));
+                    LLIST *argRef = find_ref(args[j], ar);
+                    sprintf(insn, "lw %s, %d($fp)", argReg, *(int*)argRef->item);
+                    this = new_mci(insn);
+                    prev->next = this;
+                    prev = this;
+                    while (argRef->next != NULL) {
+                        argRef = argRef->next;
+
+                        insn = (char*)malloc(50 * sizeof(char));
+                        sprintf(insn, "lw %s, %d(%s)", argReg, *(int*)argRef->item, argReg);
+                        this = new_mci(insn);
+                        prev->next = this;
+                        prev = this;
+                    }
                 } else {
                     printf("Unknown argument type.\n");
                     exit(EXIT_FAILURE);
                 }
             }
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "lw $a1, %d($fp)", *(int*)ref->item);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+            while (ref->next != NULL) {
+                ref = ref->next;
+
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "lw $a1, %d($a1)", *(int*)ref->item);
+                this = new_mci(insn);
+                prev->next = this;
+                prev = this;
+            }
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "lw $a0, 4($a1)");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "lw $a0, 0(%s)", location);
+            sprintf(insn, "lw $a1, 0($a1)");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "lw $t0, 4(%s)", location);
+            sprintf(insn, "jal $a0");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "jal $t0");
+            sprintf(insn, "lw $ra, 4($fp)");
             this = new_mci(insn);
             break;
         case tac_label:

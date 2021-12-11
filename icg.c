@@ -442,7 +442,7 @@ TAC *mmc_icg(NODE* ast)
 //            } else {
             if (rightLeaf->op == tac_call) {
                 TOKEN *rv = new_token(TEMPORARY);
-                rv->lexeme = "rv";
+                rv->lexeme = "v0";
                 ret = new_line_tac(tac_store, rv, NULL, leftLeaf->args.line.src1);
             } else {
                 ret = new_line_tac(tac_store, rightLeaf->args.line.dst, NULL, leftLeaf->args.line.src1);
