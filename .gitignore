@@ -90,6 +90,7 @@ mips-sandbox/
 mycc
 .deps
 C.output
+a.s
 
 ### Make ###
 Makefile
