@@ -20,3 +20,21 @@ void mmc_print_mc(MC* i)
         printf("%s\n",curr->insn);
     }
 }
+
+void mmc_print_file(MC *i, char *name)
+{
+    char *fileName = name;
+
+    if (fileName == NULL) {
+        fileName = (char*)malloc(10 * sizeof(char));
+        sprintf(fileName, "a.s");
+    }
+
+    FILE *f = fopen(fileName, "w");
+
+    for (MC *curr = i; curr != NULL; curr = curr->next) {
+        fprintf(f, "%s\n", curr->insn);
+    }
+
+    fclose(f);
+}

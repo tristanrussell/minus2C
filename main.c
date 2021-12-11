@@ -366,18 +366,24 @@ int main(int argc, char** argv)
     int interpreter = 0;
     int tac = 0;
     int machine = 0;
+    char *fileName = NULL;
     for (int i = 1; i < argc; i++) {
-        if (strncmp(argv[i], "-p", 2) == 0) {
+        if (strcmp(argv[i], "-p") == 0) {
             print = 1;
         }
-        if (strncmp(argv[i], "-i", 2) == 0) {
+        if (strcmp(argv[i], "-i") == 0) {
             interpreter = 1;
         }
-        if (strncmp(argv[i], "-t", 2) == 0) {
+        if (strcmp(argv[i], "-t") == 0) {
             tac = 1;
         }
-        if (strncmp(argv[i], "-c", 2) == 0) {
+        if (strcmp(argv[i], "-c") == 0) {
             machine = 1;
+        }
+        if (strcmp(argv[i], "-o") == 0) {
+            if (i + 1 < argc && argv[i+1][0] != '-') {
+                fileName = argv[i+1];
+            }
         }
     }
 
@@ -404,6 +410,7 @@ int main(int argc, char** argv)
         if (machine) {
             MC *mcSeq = mmc_mcg_bb(bbSeq);
             mmc_print_mc(mcSeq);
+            mmc_print_file(mcSeq, fileName);
         }
     }
 
