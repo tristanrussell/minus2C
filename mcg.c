@@ -67,7 +67,7 @@ MC *mcg_compute_proc(TAC *i, MC *p)
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "sw $a0, 8($v0)");
+    sprintf(insn, "sw $a1, 8($v0)");
     this = new_mci(insn);
     prev->next = this;
     prev = this;
@@ -82,9 +82,8 @@ MC *mcg_compute_proc(TAC *i, MC *p)
         int off = (3 + j) * 4;
         ar->param[j]->value = off;
         insn = (char*)malloc(50 * sizeof(char));
-        // a0 is used for static link
-        if (j < 3) sprintf(insn, "sw $a%d, %d($fp)", j + 1, off);
-        // t0 is used for jump address
+        // a0 is used for sbrk syscall and a1 is used for static link
+        if (j < 2) sprintf(insn, "sw $a%d, %d($fp)", j + 2, off);
         else if (j < 12) sprintf(insn, "sw $t%d, %d($fp)", j - 2, off);
         else {
             printf("Too many arguments.");
@@ -269,7 +268,7 @@ MC *mcg_premain(TAC *i, MC *p)
             case tac_load_id:
                 printf("load_id\n");
                 insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "lw $%s, %s", curr->args.line.dst->lexeme, curr->args.line.src1->lexeme);
+                sprintf(insn, "lw $%s, %d($fp)", curr->args.line.dst->lexeme, curr->args.line.src1->value);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
@@ -339,25 +338,19 @@ MC *mcg_premain(TAC *i, MC *p)
     }
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "lw $t0 %d($fp)", m->value);
+    sprintf(insn, "lw $a1 %d($fp)", m->value);
     this = new_mci(insn);
     prev->next = this;
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "lw $t0 0($t0)");
+    sprintf(insn, "lw $a0 4($a1)");
     this = new_mci(insn);
     prev->next = this;
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "lw $a0 %d($fp)", m->value);
-    this = new_mci(insn);
-    prev->next = this;
-    prev = this;
-
-    insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "lw $a0 4($a0)");
+    sprintf(insn, "lw $a1 0($a1)");
     this = new_mci(insn);
     prev->next = this;
     prev = this;
@@ -467,7 +460,7 @@ LLIST *find_ref_rec(TOKEN *t, AR *ar)
     }
 }
 
-LLIST *find_ref(TOKEN *t, AR *ar)
+ILLIST *find_ref(TOKEN *t, AR *ar)
 {
     int pos = -1;
 
@@ -490,11 +483,11 @@ LLIST *find_ref(TOKEN *t, AR *ar)
         }
 
         pos = 8;
-        LLIST *ret = new_llist(&pos);
+        ILLIST *ret = new_illist(pos);
 
-        return join_llist(ret, find_ref(t, ar->sl));
+        return join_illist(ret, find_ref(t, ar->sl));
     } else {
-        return new_llist(&pos);
+        return new_illist(pos);
     }
 }
 
@@ -506,7 +499,7 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
     MC *this;
     char *insn = (char*)malloc(50 * sizeof(char));
 
-    LLIST *ref;
+    ILLIST *ref;
     char *reg;
 
     switch (i->op) {
@@ -519,7 +512,7 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             printf("load_id\n");
             ref = find_ref(i->args.line.src1, ar);
             reg = i->args.line.dst->lexeme;
-            sprintf(insn, "lw $%s, %d($fp)", reg, *(int*)ref->item);
+            sprintf(insn, "lw $%s, %d($fp)", reg, ref->i);
             this = new_mci(insn);
             prev->next = this;
             prev = this;
@@ -527,7 +520,7 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
                 ref = ref->next;
 
                 insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "lw $%s, %d($%s)", reg, *(int*)ref->item, reg);
+                sprintf(insn, "lw $%s, %d($%s)", reg, ref->i, reg);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
@@ -536,21 +529,27 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
         case tac_store:
             printf("store\n");
             ref = find_ref(i->args.line.dst, ar);
-            sprintf(insn, "lw $a0, %d($fp)", *(int*)ref->item);
-            this = new_mci(insn);
-            prev->next = this;
-            prev = this;
-            while (ref->next != NULL) {
-                ref = ref->next;
-
-                insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "lw $a0, %d($a0)", *(int*)ref->item);
+            if (count_ilist(ref) == 1) {
+                sprintf(insn, "sw $%s, %d($fp)", i->args.line.src1->lexeme, ref->i);
+                this = new_mci(insn);
+            } else {
+                sprintf(insn, "lw $a0, %d($fp)", ref->i);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
+                while (ref->next != NULL) {
+                    ref = ref->next;
+
+                    insn = (char *) malloc(50 * sizeof(char));
+                    sprintf(insn, "lw $a0, %d($a0)", ref->i);
+                    this = new_mci(insn);
+                    prev->next = this;
+                    prev = this;
+                }
+                insn = (char *) malloc(50 * sizeof(char));
+                sprintf(insn, "sw $%s, $a0", i->args.line.src1->lexeme);
+                this = new_mci(insn);
             }
-            sprintf(insn, "sw $%s, $a0", i->args.line.src1->lexeme);
-            this = new_mci(insn);
             break;
         case tac_mod:
             printf("mod\n");
@@ -596,7 +595,8 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
                 prev = this;
             } else if (i->args.line.src1->type == IDENTIFIER) {
                 ref = find_ref(i->args.line.src1, ar);
-                sprintf(insn, "lw $v0, %d($fp)", *(int*)ref->item);
+
+                sprintf(insn, "lw $v0, %d($fp)", ref->i);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
@@ -604,7 +604,7 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
                     ref = ref->next;
 
                     insn = (char*)malloc(50 * sizeof(char));
-                    sprintf(insn, "lw $v0, %d($v0)", *(int*)ref->item);
+                    sprintf(insn, "lw $v0, %d($v0)", ref->i);
                     this = new_mci(insn);
                     prev->next = this;
                     prev = this;
@@ -631,28 +631,32 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             TOKEN **args = i->args.call.ar->param;
             for (int j = 0; j < arity; j++) {
                 char *argReg = (char*)malloc(5 * sizeof(char));
-                if (j < 2) sprintf(reg, "$a%d", j + 2);
-                else if (j < 12) sprintf(reg, "$t%d", j - 2);
+                if (j < 2) sprintf(argReg, "$a%d", j + 2);
+                else if (j < 12) sprintf(argReg, "$t%d", j - 2);
                 else {
                     printf("Too many arguments.\n");
                     exit(EXIT_FAILURE);
                 }
                 if (args[j]->type == CONSTANT) {
+                    insn = (char *) malloc(50 * sizeof(char));
                     sprintf(insn, "li %s, %d", argReg, args[j]->value);
                     this = new_mci(insn);
                     prev->next = this;
                     prev = this;
                 } else if (args[j]->type == IDENTIFIER) {
-                    LLIST *argRef = find_ref(args[j], ar);
-                    sprintf(insn, "lw %s, %d($fp)", argReg, *(int*)argRef->item);
+                    ILLIST *argRef = find_ref(args[j], ar);
+
+                    insn = (char*)malloc(50 * sizeof(char));
+                    sprintf(insn, "lw %s, %d($fp)", argReg, argRef->i);
                     this = new_mci(insn);
                     prev->next = this;
                     prev = this;
+
                     while (argRef->next != NULL) {
                         argRef = argRef->next;
 
                         insn = (char*)malloc(50 * sizeof(char));
-                        sprintf(insn, "lw %s, %d(%s)", argReg, *(int*)argRef->item, argReg);
+                        sprintf(insn, "lw %s, %d(%s)", argReg, argRef->i, argReg);
                         this = new_mci(insn);
                         prev->next = this;
                         prev = this;
@@ -664,7 +668,7 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             }
 
             insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "lw $a1, %d($fp)", *(int*)ref->item);
+            sprintf(insn, "lw $a1, %d($fp)", ref->i);
             this = new_mci(insn);
             prev->next = this;
             prev = this;
@@ -672,7 +676,7 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
                 ref = ref->next;
 
                 insn = (char*)malloc(50 * sizeof(char));
-                sprintf(insn, "lw $a1, %d($a1)", *(int*)ref->item);
+                sprintf(insn, "lw $a1, %d($a1)", ref->i);
                 this = new_mci(insn);
                 prev->next = this;
                 prev = this;
@@ -692,6 +696,12 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
 
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "jal $a0");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "move $fp, $ra");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
