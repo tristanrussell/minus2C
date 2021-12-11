@@ -145,6 +145,12 @@ MC *mcg_compute_proc(TAC *i, MC *p)
     prev = mmc_mcg(i->next, this, ar);
 
     insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "lw $fp, 0($fp)");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
     sprintf(insn, "jr $ra");
     this = new_mci(insn);
     prev->next = this;
@@ -615,6 +621,13 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
                 prev->next = this;
                 prev = this;
             }
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "lw $fp, 0($fp)");
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "jr $ra");
             this = new_mci(insn);
@@ -696,12 +709,6 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
 
             insn = (char*)malloc(50 * sizeof(char));
             sprintf(insn, "jal $a0");
-            this = new_mci(insn);
-            prev->next = this;
-            prev = this;
-
-            insn = (char*)malloc(50 * sizeof(char));
-            sprintf(insn, "move $fp, $ra");
             this = new_mci(insn);
             prev->next = this;
             prev = this;
