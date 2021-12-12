@@ -550,7 +550,7 @@ TAC *mmc_icg(NODE* ast)
                 return new_line_tac(tac_return, leftLeaf->args.line.src1, NULL, NULL);
             } else if (leftLeaf->op == tac_call) {
                 TOKEN *rv = new_token(TEMPORARY);
-                rv->lexeme = "rv";
+                rv->lexeme = "v0";
                 ret = new_line_tac(tac_return, rv, NULL, NULL);
                 ret->next = leftLeaf;
                 return ret;

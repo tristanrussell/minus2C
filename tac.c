@@ -200,7 +200,7 @@ void mmc_print_ic(TAC* i, int ind)
             break;
         default:
             printf("%s %s, %s, %s\n",
-                   tac_ops[i->op], // need to range check!
+                   tac_ops[i->op],
                    i->args.line.src1->lexeme,
                    i->args.line.src2->lexeme,
                    i->args.line.dst->lexeme);
