@@ -386,6 +386,7 @@ int main(int argc, char** argv)
             }
         }
     }
+    if (!interpreter && !tac && !machine) machine = 1;
 
     NODE* tree;
     if (argc>1 && strcmp(argv[1],"-d")==0) yydebug = 1;
@@ -413,33 +414,5 @@ int main(int argc, char** argv)
             mmc_print_file(mcSeq, fileName);
         }
     }
-
-//    TAC *tacSeq = mmc_icg(tree);
-//    printf("\n");
-//    mmc_print_ic(tacSeq, 0);
-//    printf("\n");
-//    BB *bbSeq = bb_create(tacSeq);
-//    bb_print(bbSeq);
-//    printf("\n");
-//    MC *mcSeq = mmc_mcg_bb(bbSeq);
-//    printf("\n");
-//    mmc_print_mc(mcSeq);
-
-//    NODE *leaf = calc_leaf(tree);
-//    if (leaf) {
-//        if (leaf->type == VOID) {
-//            printf("ERROR");
-//        } else {
-//            TOKEN *t = (TOKEN *) leaf;
-//            printf("Return: %d", t->value);
-//        }
-//    } else {
-//        printf("Nothing returned");
-//    }
-//    printf("\n\n");
-//    FRAME *frame = new_frame();
-//    VALUE *val = interpret(tree, frame);
-//    printf("\n%d\n\n", val->v.integer);
-//    print_names(frame);
     return 0;
 }

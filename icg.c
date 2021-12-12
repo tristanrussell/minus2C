@@ -316,6 +316,9 @@ typedef struct tlist {
 
 TLIST *tac_compute_args(NODE *ast)
 {
+    // Might need to refactor to return TAC sequence so can do computations
+    // and return them.
+
     TLIST *left;
     TLIST *right;
 

@@ -177,9 +177,21 @@ MC *mcg_premain(TAC *i, MC *p)
     }
 
     char *insn = (char*)malloc(50 * sizeof(char));
-    sprintf(insn, "main:");
+    sprintf(insn, ".text");
     this = new_mci(insn);
     first = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, ".globl main");
+    this = new_mci(insn);
+    prev->next = this;
+    prev = this;
+
+    insn = (char*)malloc(50 * sizeof(char));
+    sprintf(insn, "main:");
+    this = new_mci(insn);
+    prev->next = this;
     prev = this;
 
     insn = (char*)malloc(50 * sizeof(char));
