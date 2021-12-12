@@ -13,6 +13,8 @@ AR *globalAR = NULL;
 
 LLIST *procs = NULL;
 
+ILLIST *find_ref(TOKEN *t, AR *ar);
+
 MC *append_mc(MC *pre, MC *post)
 {
     MC *n = post;
@@ -376,7 +378,72 @@ MC *mcg_premain(TAC *i, MC *p)
     return first;
 }
 
-MC *mcg_compute_if(TAC *i, MC *prev) // Fix for dynamic allocation
+MC *check_built_in(TAC *i, MC *p, AR *ar)
+{
+    MC *this;
+    MC *prev = p;
+    char *name = i->args.call.name->lexeme;
+    int arity;
+    TOKEN **args;
+    char *insn = (char*)malloc(50 * sizeof(char));
+
+    if (strcmp(name, "print_int") == 0) {
+        args = i->args.call.ar->param;
+
+        sprintf(insn, "li $v0, 1");
+        this = new_mci(insn);
+        prev->next = this;
+        prev = this;
+
+        if (args[0]->type == CONSTANT) {
+            insn = (char *) malloc(50 * sizeof(char));
+            sprintf(insn, "li $a0, %d", args[0]->value);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+        } else if (args[0]->type == IDENTIFIER) {
+            ILLIST *argRef = find_ref(args[0], ar);
+
+            insn = (char*)malloc(50 * sizeof(char));
+            sprintf(insn, "lw $a0, %d($fp)", argRef->i);
+            this = new_mci(insn);
+            prev->next = this;
+            prev = this;
+
+            while (argRef->next != NULL) {
+                argRef = argRef->next;
+
+                insn = (char*)malloc(50 * sizeof(char));
+                sprintf(insn, "lw $a0, %d($a0)", argRef->i);
+                this = new_mci(insn);
+                prev->next = this;
+                prev = this;
+            }
+        } else {
+            printf("Unknown argument type.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        insn = (char*)malloc(50 * sizeof(char));
+        sprintf(insn, "syscall");
+        this = new_mci(insn);
+        prev->next = this;
+        return this;
+    } else if (strcmp(name, "read_int") == 0) {
+        sprintf(insn, "li $v0, 5");
+        this = new_mci(insn);
+        prev->next = this;
+        prev = this;
+
+        insn = (char*)malloc(50 * sizeof(char));
+        sprintf(insn, "syscall");
+        this = new_mci(insn);
+        prev->next = this;
+        return this;
+    } else return NULL;
+}
+
+MC *mcg_compute_if(TAC *i, MC *prev)
 {
     MC *this;
     MC *next;
@@ -449,36 +516,6 @@ MC *mcg_compute_if(TAC *i, MC *prev) // Fix for dynamic allocation
             return this;
         default:
             return NULL;
-    }
-}
-
-LLIST *find_ref_rec(TOKEN *t, AR *ar)
-{
-    int pos = -1;
-
-    for (int i = 0; i < ar->arity; i++) {
-        if (ar->param[i] == t) {
-            pos = t->value;
-        }
-    }
-    for (int i = 0; i < ar->localCount; i++) {
-        if (ar->local[i] == t) {
-            pos = t->value;
-        }
-    }
-
-    if (pos == -1) {
-        if (ar->sl == NULL) {
-            printf("Error, token not found.\n");
-            exit(EXIT_FAILURE);
-        }
-
-        pos = 8;
-        LLIST *ret = new_llist(&pos);
-
-        return join_llist(ret, find_ref_rec(t, ar->sl));
-    } else {
-        return new_llist(&pos);
     }
 }
 
@@ -655,6 +692,10 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
             return prev;
         case tac_call:
             printf("call\n");
+            MC *checkBuiltIn = check_built_in(i, prev, ar);
+            if (checkBuiltIn != NULL)
+                return mmc_mcg(i->next, checkBuiltIn, ar);
+
             ref = find_ref(i->args.call.name, ar);
             int arity = i->args.call.ar->arity;
             TOKEN **args = i->args.call.ar->param;
