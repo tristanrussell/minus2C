@@ -340,8 +340,15 @@ TAC *tac_compute_call(NODE *ast)
     TAC *leftLeaf = mmc_icg(ast->left);
     TAC *ret = new_call_tac(leftLeaf->args.line.src1, 0);
 
-    LLIST *args = getArgs(ast->right);
-    int numArgs = count_list(args);
+    int numArgs;
+    LLIST *args;
+    if (ast->right != NULL) {
+        args = getArgs(ast->right);
+        numArgs = count_list(args);
+    } else {
+        args = NULL;
+        numArgs = 0;
+    }
 
 //    TLIST *list = tac_compute_args(ast->right);
 //    TLIST *curr = list;
