@@ -370,17 +370,13 @@ int main(int argc, char** argv)
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
             print = 1;
-        }
-        if (strcmp(argv[i], "-i") == 0) {
+        } else if (strcmp(argv[i], "-i") == 0) {
             interpreter = 1;
-        }
-        if (strcmp(argv[i], "-t") == 0) {
+        } else if (strcmp(argv[i], "-t") == 0) {
             tac = 1;
-        }
-        if (strcmp(argv[i], "-c") == 0) {
+        } else if (strcmp(argv[i], "-c") == 0) {
             machine = 1;
-        }
-        if (strcmp(argv[i], "-o") == 0) {
+        } else if (strcmp(argv[i], "-o") == 0) {
             if (i + 1 < argc && argv[i+1][0] != '-') {
                 fileName = argv[i+1];
             }
