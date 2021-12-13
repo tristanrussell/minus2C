@@ -32,7 +32,7 @@ typedef struct closure
     NODE*   ids;
     int     type;
     NODE*   code;
-} CLOSURE ;
+} CLOSURE;
 
 typedef struct value
 {
