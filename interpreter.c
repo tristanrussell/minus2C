@@ -179,7 +179,14 @@ VALUE *interpret(NODE *tree, FRAME *frame)
             return NULL;
         case ';':
             leftLeaf = interpret(tree->left, frame);
-            if (leftLeaf != NULL && leftLeaf->type == CONTINUE) return leftLeaf;
+            if (leftLeaf != NULL) {
+                switch (leftLeaf->type) {
+                    case CONTINUE:
+                    case BREAK:
+                    case mmcRETURN:
+                        return leftLeaf;
+                }
+            }
             return interpret(tree->right, frame);
         case '<':
             leftLeaf = interpret(tree->left, frame);
@@ -290,7 +297,14 @@ VALUE *interpret(NODE *tree, FRAME *frame)
         case WHILE:
             while (interpret(tree->left, frame)->v.integer) {
                 VALUE *ret = interpret(tree->right, frame);
-                if (ret != NULL && ret->type == BREAK) break;
+                if (ret != NULL) {
+                    switch (ret->type) {
+                        case BREAK:
+                            break;
+                        case mmcRETURN:
+                            return ret;
+                    }
+                }
             }
             return NULL;
         case CONTINUE:
