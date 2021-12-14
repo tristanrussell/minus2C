@@ -402,9 +402,9 @@ int main(int argc, char** argv)
     if (tac || machine) {
         TAC *tacSeq = generate_tac(tree);
         tacSeq = tac_optimise(tacSeq);
-        BB *bbSeq = bb_create(tacSeq);
-        if (tac) bb_print(bbSeq);
+        if (tac) mmc_print_ic(tacSeq, 0);
         if (machine) {
+            BB *bbSeq = bb_create(tacSeq);
             MC *mcSeq = mmc_mcg_bb(bbSeq);
             mmc_print_mc(mcSeq);
             mmc_print_file(mcSeq, fileName);
