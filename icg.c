@@ -7,8 +7,15 @@
 #include "token.h"
 #include "llist.h"
 
+// The global activation record.
 static AR *globalAR = NULL;
 
+/**
+ * Converts a list of tokens into an array of tokens.
+ *
+ * @param list : The linked list of tokens.
+ * @return : The array of tokens.
+ */
 TOKEN **convert_token_array(LLIST *list)
 {
     TOKEN **tokens = (TOKEN**)malloc(count_list(list) * sizeof(TOKEN*));
@@ -21,6 +28,13 @@ TOKEN **convert_token_array(LLIST *list)
     return tokens;
 }
 
+/**
+ * Takes the root node of the start of a list of parameters for a function
+ * declaration and returns the parameters as a list.
+ *
+ * @param ast : The root node of the parameters.
+ * @return : The linked list of parameters.
+ */
 LLIST *getParams(NODE *ast)
 {
     switch (ast->type) {
@@ -35,6 +49,13 @@ LLIST *getParams(NODE *ast)
     }
 }
 
+/**
+ * A recursive function used for calculating the list of locals in a function
+ * body.
+ *
+ * @param ast : The node to be traversed to find the locals.
+ * @return : The linked list of locals.
+ */
 LLIST *computeLocalsChain(NODE *ast)
 {
     switch (ast->type) {
@@ -49,6 +70,13 @@ LLIST *computeLocalsChain(NODE *ast)
     }
 }
 
+/**
+ * Takes the root node of the start of a procedure body and returns a list of
+ * locals declared in the code.
+ *
+ * @param ast : The root node of the function body.
+ * @return : The linked list of locals.
+ */
 LLIST *getLocals(NODE *ast)
 {
     LLIST *left;
@@ -75,6 +103,13 @@ LLIST *getLocals(NODE *ast)
     }
 }
 
+/**
+ * Takes the root node of the start of a list of arguments for a function call
+ * and returns the arguments as a list.
+ *
+ * @param ast : The root node of the arguments.
+ * @return : The linked list of arguments.
+ */
 LLIST *getArgs(NODE *ast)
 {
     switch(ast->type) {
@@ -88,6 +123,12 @@ LLIST *getArgs(NODE *ast)
     }
 }
 
+/**
+ * Takes the root node of the AST and returns a list of globals.
+ *
+ * @param ast : The root node of the AST.
+ * @return : The linked list of globals.
+ */
 LLIST *getGlobals(NODE *ast)
 {
     LLIST *left;
@@ -116,6 +157,12 @@ LLIST *getGlobals(NODE *ast)
     }
 }
 
+/**
+ * Handles the compilation of an if statement into TAC.
+ *
+ * @param ast : The IF node indicating the start of the if statement.
+ * @return : The compiled TAC sequence.
+ */
 TAC *tac_compute_if(NODE *ast)
 {
     TOKEN *temp;
@@ -206,6 +253,12 @@ TAC *tac_compute_if(NODE *ast)
     }
 }
 
+/**
+ * Handles the compilation of a while loop into TAC.
+ *
+ * @param ast : The WHILE node indicating the start of the while loop.
+ * @return : The compiled TAC sequence.
+ */
 TAC *tac_compute_while(NODE *ast)
 {
     TOKEN *temp;
@@ -275,6 +328,12 @@ TAC *tac_compute_while(NODE *ast)
     return labelEnd;
 }
 
+/**
+ * Handles the compilation of a function declaration into TAC.
+ *
+ * @param ast : The D node for the function declaration.
+ * @return : The compiled TAC sequence.
+ */
 TAC *tac_compute_closure(NODE *ast)
 {
     if (ast->type != 'D') return NULL;
@@ -292,8 +351,6 @@ TAC *tac_compute_closure(NODE *ast)
         printf("Error in function declaration.\n");
         exit(EXIT_FAILURE);
     }
-
-//    TAC *type = mmc_icg(dec->left);
 
     NODE *func = dec->right;
 
@@ -321,16 +378,24 @@ TAC *tac_compute_closure(NODE *ast)
     return endproc;
 }
 
+/**
+ * A structure used for storing a linked list of TAC sequences.
+ */
 typedef struct tlist {
     TAC *tac;
     struct tlist *next;
 } TLIST;
 
+/**
+ * An early attempt at enabling function calls and arithmetic operations as
+ * arguments.
+ * - Needs further work to get it working.
+ *
+ * @param ast
+ * @return
+ */
 TLIST *tac_compute_args(NODE *ast)
 {
-    // Might need to refactor to return TAC sequence so can do computations
-    // and return them.
-
     TLIST *left;
     TLIST *right;
 
@@ -350,6 +415,12 @@ TLIST *tac_compute_args(NODE *ast)
     }
 }
 
+/**
+ * Handles the compilation of a function call into TAC.
+ *
+ * @param ast : The APPLY node for the function call.
+ * @return : The compiled TAC sequence.
+ */
 TAC *tac_compute_call(NODE *ast)
 {
     TAC *leftLeaf = mmc_icg(ast->left);
@@ -365,28 +436,33 @@ TAC *tac_compute_call(NODE *ast)
         numArgs = 0;
     }
 
-//    TLIST *list = tac_compute_args(ast->right);
-//    TLIST *curr = list;
-//    TLIST *prev = NULL;
-//    while (curr != NULL) {
-//        countArgs++;
-//        if (curr->tac->op == tac_call) {
-//            prepend_tac(curr->tac, ret);
-//            if (prev != NULL) {
-//                prev->next = curr->next;
-//            } else {
-//                list = curr->next;
-//                continue;
-//            }
-//        }
-//        prev = curr;
-//        curr = curr->next;
-//    }
-//    curr = list;
-//    while (curr != NULL) {
-//        prepend_tac(curr->tac, ret);
-//        curr = curr->next;
-//    }
+    /*
+     * The following commented code is an early attempt at enabling function
+     * calls and arithmetic operations as arguments.
+     *
+     * TLIST *list = tac_compute_args(ast->right);
+     * TLIST *curr = list;
+     * TLIST *prev = NULL;
+     * while (curr != NULL) {
+     *     countArgs++;
+     *     if (curr->tac->op == tac_call) {
+     *         prepend_tac(curr->tac, ret);
+     *         if (prev != NULL) {
+     *             prev->next = curr->next;
+     *         } else {
+     *             list = curr->next;
+     *             continue;
+     *         }
+     *     }
+     *     prev = curr;
+     *     curr = curr->next;
+     * }
+     * curr = list;
+     * while (curr != NULL) {
+     *     prepend_tac(curr->tac, ret);
+     *     curr = curr->next;
+     * }
+     */
 
     ret->args.call.ar->arity = numArgs;
     ret->args.call.ar->param = convert_token_array(args);
@@ -551,6 +627,12 @@ TAC *mmc_icg(NODE* ast)
     }
 }
 
+/**
+ * The entry function for generating the TAC sequence.
+ *
+ * @param tree : The AST tree to be compiled into TAC.
+ * @return : The compiled TAC sequence.
+ */
 TAC *generate_tac(NODE *tree)
 {
     globalAR = (AR*)malloc(sizeof(AR));
@@ -560,6 +642,12 @@ TAC *generate_tac(NODE *tree)
     return mmc_icg(tree);
 }
 
+/**
+ * Removes TAC blocks and adds the locals declared in the blocks to the
+ * enclosing procedures.
+ *
+ * @param tac : The TAC sequence with the TAC blocks.
+ */
 void remove_blocks(TAC *tac)
 {
     int count = 0;
@@ -594,6 +682,11 @@ void remove_blocks(TAC *tac)
     }
 }
 
+/**
+ * Add static links to all the activation records.
+ *
+ * @param tac : The TAC sequence containing the activation records.
+ */
 void add_static_links(TAC *tac)
 {
     TAC *curr = tac;
@@ -615,6 +708,12 @@ void add_static_links(TAC *tac)
     }
 }
 
+/**
+ * A recursive sub function for flattening procedures.
+ *
+ * @param tac : The TAC sequence to perform procedure flattening on.
+ * @return : The TAC sequence with flattened procedures.
+ */
 TAC *flatten_proc_rec(TAC *tac)
 {
     TAC *ret = tac;
@@ -634,6 +733,11 @@ TAC *flatten_proc_rec(TAC *tac)
     return ret;
 }
 
+/**
+ * Flattens procedures so that there are no embedded procedure declarations.
+ *
+ * @param tac : The TAC sequence within which to flatten procedures.
+ */
 void flatten_procedures(TAC *tac)
 {
     TAC *curr = tac;
@@ -656,6 +760,12 @@ void flatten_procedures(TAC *tac)
     }
 }
 
+/**
+ * Removes TAC instructions after the main procedure.
+ *
+ * @param tac : The TAC sequence to remove the post main code from.
+ * @return : The TAC sequence after post main code has been removed.
+ */
 TAC *remove_post_main(TAC *tac)
 {
     TAC *curr = tac;
@@ -663,6 +773,12 @@ TAC *remove_post_main(TAC *tac)
     return curr;
 }
 
+/**
+ * Performs some optimisations on a sequence of TAC instructions.
+ *
+ * @param tac : The sequence of TAC instructions to optimise.
+ * @return : The optimised sequence of TAC instructions.
+ */
 TAC *tac_optimise(TAC *tac)
 {
     remove_blocks(tac);
@@ -672,6 +788,12 @@ TAC *tac_optimise(TAC *tac)
     return ret;
 }
 
+/**
+ * Creates a sequence of basic blocks from a sequence of TAC instructions.
+ *
+ * @param seq : The sequence of TAC instructions to convert to basic blocks.
+ * @return : The sequence of basic blocks.
+ */
 BB *bb_create(TAC* seq)
 {
     BB *bb;
@@ -696,11 +818,23 @@ BB *bb_create(TAC* seq)
     return bb;
 }
 
+/**
+ * Performs intra-basic block optimisations.
+ * - Not yet implemented, left for future improvements.
+ *
+ * @param bb : The basic block to optimise.
+ * @return : The optimised basic block.
+ */
 BB* bb_optimise(BB* bb)
 {
     return (BB*)0;
 }
 
+/**
+ * Prints a sequence of basic blocks.
+ *
+ * @param bb : The sequence of basic blocks to print.
+ */
 void bb_print(BB* bb)
 {
     if (bb->next != NULL) bb_print(bb->next);
