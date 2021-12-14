@@ -7,22 +7,27 @@
 #include "llist.h"
 #include "C.tab.h"
 
+// A pointer to the first MIPS instruction.
 MC *first = NULL;
-MC *premain = NULL;
+// A pointer to the global activation record.
 AR *globalAR = NULL;
 
+// A linked list of procedures found in the TAC sequence.
 LLIST *procs = NULL;
 
+MC *mmc_mcg(TAC*, MC*, AR*);
 ILLIST *find_ref(TOKEN *t, AR *ar);
 
-MC *append_mc(MC *pre, MC *post)
-{
-    MC *n = post;
-    while (n->next != NULL) n = n->next;
-    n->next = pre;
-    return post;
-}
-
+/**
+ * Handles creating the code for a procedure. It generates the code for the
+ * frame allocation and the allocation of procedure's parameters and then it
+ * calls the function to generate the procedure's code.
+ *
+ * @param i : The TAC instruction at the start of the procedure.
+ * @param p : The previous MIPS instruction that the new instructions will be
+ *            appended to.
+ * @return : The last instruction generated for the procedure.
+ */
 MC *mcg_compute_proc(TAC *i, MC *p)
 {
     int numArgs = i->args.proc.ar->arity;
@@ -159,7 +164,16 @@ MC *mcg_compute_proc(TAC *i, MC *p)
     return this;
 }
 
-MC *mcg_premain(TAC *i, MC *p)
+/**
+ * This function is the entry point for the TAC to machine code compilation. It
+ * builds the premain code as well as calling functions to build the code for
+ * main and the other functions. It takes in a sequence of TAC instructions and
+ * returns the compiled MIPS machine code.
+ *
+ * @param i : The sequence of TAC instructions to compile.
+ * @return : The compiled sequence of MIPS machine code instructions.
+ */
+MC *mcg_premain(TAC *i)
 {
     MC *prev;
     MC *this;
@@ -381,6 +395,17 @@ MC *mcg_premain(TAC *i, MC *p)
     return first;
 }
 
+/**
+ * Takes a TAC CALL instruction and checks if it is a built in function, if it
+ * is then it returns the sequence of instructions for that function, otherwise
+ * NULL is returned.
+ *
+ * @param i : The TAC CALL instruction.
+ * @param p : THe previous MIPS machine code instruction that any new
+ *            instructions will be appended to.
+ * @param ar : The activation record for the frame that we are currently in.
+ * @return : The sequence of instructions for the built in function or NULL.
+ */
 MC *check_built_in(TAC *i, MC *p, AR *ar)
 {
     MC *this;
@@ -446,10 +471,17 @@ MC *check_built_in(TAC *i, MC *p, AR *ar)
     } else return NULL;
 }
 
+/**
+ * Handles the compiling of TAC if statements.
+ *
+ * @param i : The TAC if instruction.
+ * @param prev : The previous MIPS machine code instruction to append any new
+ *               instructions onto.
+ * @return : The new compiled instruction.
+ */
 MC *mcg_compute_if(TAC *i, MC *prev)
 {
     MC *this;
-    MC *next;
     TAC *cond = i->args.tacif.cond;
     char *label = i->args.tacif.label->name->lexeme;
     char *insn = (char*)malloc(50 * sizeof(char));
@@ -466,53 +498,21 @@ MC *mcg_compute_if(TAC *i, MC *prev)
             prev->next = this;
             return this;
         case tac_ge:
-//            sprintf(insn, "slt $at $%s, $%s", cond->args.line.src1->lexeme, cond->args.line.src2->lexeme);
-//            this = new_mci(insn);
-//            prev->next = this;
-//            insn = (char*)malloc(50 * sizeof(char));
-//            sprintf(insn, "beq $at $zero %s", label);
-//            next = new_mci(insn);
-//            this->next = next;
-//            return next;
             sprintf(insn, "bge $%s, $%s, %s", cond->args.line.src1->lexeme, cond->args.line.src2->lexeme, label);
             this = new_mci(insn);
             prev->next = this;
             return this;
         case tac_gt:
-//            sprintf(insn, "slt $at $%s, $%s", cond->args.line.src2->lexeme, cond->args.line.src1->lexeme);
-//            this = new_mci(insn);
-//            prev->next = this;
-//            insn = (char*)malloc(50 * sizeof(char));
-//            sprintf(insn, "bne $at $zero %s", label);
-//            next = new_mci(insn);
-//            this->next = next;
-//            return next;
             sprintf(insn, "bgt $%s, $%s, %s", cond->args.line.src1->lexeme, cond->args.line.src2->lexeme, label);
             this = new_mci(insn);
             prev->next = this;
             return this;
         case tac_le:
-//            sprintf(insn, "slt $at $%s, $%s", cond->args.line.src2->lexeme, cond->args.line.src1->lexeme);
-//            this = new_mci(insn);
-//            prev->next = this;
-//            insn = (char*)malloc(50 * sizeof(char));
-//            sprintf(insn, "beq $at $zero %s", label);
-//            next = new_mci(insn);
-//            this->next = next;
-//            return next;
             sprintf(insn, "ble $%s, $%s, %s", cond->args.line.src1->lexeme, cond->args.line.src2->lexeme, label);
             this = new_mci(insn);
             prev->next = this;
             return this;
         case tac_lt:
-//            sprintf(insn, "slt $at $%s, $%s", cond->args.line.src1->lexeme, cond->args.line.src2->lexeme);
-//            this = new_mci(insn);
-//            prev->next = this;
-//            insn = (char*)malloc(50 * sizeof(char));
-//            sprintf(insn, "bne $at $zero %s", label);
-//            next = new_mci(insn);
-//            this->next = next;
-//            return next;
             sprintf(insn, "blt $%s, $%s, %s", cond->args.line.src1->lexeme, cond->args.line.src2->lexeme, label);
             this = new_mci(insn);
             prev->next = this;
@@ -522,6 +522,21 @@ MC *mcg_compute_if(TAC *i, MC *prev)
     }
 }
 
+/**
+ * Finds a variable by recursively checking the current frame for the variable
+ * then moving to the parent frame and checking again. This terminates at the
+ * global frame, if not found then the program will terminate with an error.
+ *
+ * The function returns a list of offsets to access to find the variable. If
+ * the variable is not in a frame then 8 will be used as that is the offset to
+ * access the static link to reach the next frame.
+ *
+ * @param t : The token to find in the frame.
+ * @param ar : The activation record for the current frame, this stores the
+ *             tokens for the current frame.
+ * @return : A sequence of integers indicating the offsets to find the
+ *           variable.
+ */
 ILLIST *find_ref(TOKEN *t, AR *ar)
 {
     int pos = -1;
@@ -553,6 +568,17 @@ ILLIST *find_ref(TOKEN *t, AR *ar)
     }
 }
 
+/**
+ * The function that is called recursively to construct the body of a
+ * procedure. It will terminate at an endproc TAC instruction and return the
+ * sequence of MIPS machine code instructions to the calling function.
+ *
+ * @param i : The TAC instruction starting the body of code for a procedure.
+ * @param p : The previous MIPS machine code instruction to append new
+ *            instructions to.
+ * @param ar : The activation record for the current frame.
+ * @return : The sequence of compiled MIPS machine code instructions.
+ */
 MC* mmc_mcg(TAC* i, MC *p, AR *ar)
 {
     if (i==NULL) return p;
@@ -794,11 +820,20 @@ MC* mmc_mcg(TAC* i, MC *p, AR *ar)
     return mmc_mcg(i->next, this, ar);
 }
 
+/**
+ * A simple queue structure for TAC instructions.
+ */
 typedef struct tqueue {
     TAC *start;
     TAC *end;
 } TQUEUE;
 
+/**
+ * A simple constructor for a queue of TAC instructions.
+ *
+ * @param tac : The first TAC instruction to start the queue.
+ * @return : The new queue structure.
+ */
 TQUEUE *tqueue_create(TAC *tac)
 {
     TQUEUE *tq = (TQUEUE*)malloc(sizeof(TQUEUE));
@@ -807,6 +842,13 @@ TQUEUE *tqueue_create(TAC *tac)
     return tq;
 }
 
+/**
+ * Reverses a sequence of TAC instructions using recursion.
+ *
+ * @param tac : The starting TAC instruction for the sequence of TAC
+ *              instructions.
+ * @return : A queue of TAC instructions.
+ */
 TQUEUE *reverse_tac(TAC *tac)
 {
     if (tac->next == NULL) return tqueue_create(tac);
@@ -818,6 +860,12 @@ TQUEUE *reverse_tac(TAC *tac)
     }
 }
 
+/**
+ * Finds all of the temporaries in a TAC sequence and limits them to fit inside
+ * of the MIPS temporary registers.
+ *
+ * @param tac : The sequence of TAC instructions.
+ */
 void limit_temps(TAC *tac)
 {
     LLIST *temps = new_llist(NULL);
@@ -878,28 +926,26 @@ void limit_temps(TAC *tac)
     }
 }
 
-//int limit_temps(LLIST *temps)
-//{
-//    int reg;
-//    if (temps->next != NULL) reg = limit_temps(temps->next);
-//    else reg = 0;
-//
-//    for (LLIST *curr = temps; curr != NULL; curr = curr->next) {
-//        if (tac->args.line.dst->lexeme[0] == 't') {
-//            free(tac->args.line.dst->lexeme);
-//            tac->args.line.dst->lexeme = (char*)malloc(sizeof(char));
-//            sprintf(tac->args.line.dst->lexeme, "$t%d", reg);
-//            reg = (reg + 1) % 10;
-//        }
-//    }
-//}
-
+/**
+ * Limits the temporaries in every basic block to fit into the 10 temporary
+ * registers of the MIPS architecture.
+ *
+ * @param bb : The sequence of basic blocks.
+ */
 void limit_temps_bb(BB *bb)
 {
     if (bb->next != NULL) limit_temps_bb(bb->next);
     limit_temps(bb->leader);
 }
 
+/**
+ * The entry point for the compiler code. Reverses the TAC instructions, limits
+ * the temporary values and finds the global activation record, then calls the
+ * entry function for the compilation of TAC to MIPS machine code.
+ *
+ * @param bb : The basic block sequence of TAC instructions to be compiled.
+ * @return : The compiled MIPS machine code.
+ */
 MC *mmc_mcg_bb(BB *bb)
 {
     limit_temps_bb(bb);
@@ -925,7 +971,7 @@ MC *mmc_mcg_bb(BB *bb)
     TAC *main = t;
 
     globalAR = main->args.proc.ar->sl;
-    mcg_premain(tq->start, NULL);
+    mcg_premain(tq->start);
 
     return first;
 }

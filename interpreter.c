@@ -12,6 +12,17 @@ VALUE *read_int();
 
 VALUE *interpret(NODE*, FRAME*);
 
+/**
+ * Given a node representing a list of variable declaration, this function will
+ * add each of the variables to the current frame.
+ *
+ * @param tree : The node of the AST containing the list of variable
+ *               declarations.
+ * @param frame : The current frame for the code being interpreted.
+ * @param type : The type of the variables being declared.
+ * @return : If only a single variable is declared then the value of the
+ *           variable will be returned otherwise NULL is returned.
+ */
 VALUE *create_vars(NODE *tree, FRAME *frame, int type)
 {
     TOKEN *t = (TOKEN*)tree;
@@ -45,6 +56,14 @@ VALUE *create_vars(NODE *tree, FRAME *frame, int type)
     return val;
 }
 
+/**
+ * The method for interpreting procedure declaration. Adds the procedure to the
+ * frame and if it is the main function then calls it immediately.
+ *
+ * @param tree : The node of the AST declaring a new function.
+ * @param frame : The current frame for the code being interpreted.
+ * @return : The return value from declaring the function.
+ */
 VALUE *create_closure(NODE *tree, FRAME *frame)
 {
     if (tree->type != 'D') return NULL;
@@ -81,6 +100,16 @@ VALUE *create_closure(NODE *tree, FRAME *frame)
     } else return declare_closure(name, frame, code, ids, type->type);
 }
 
+/**
+ * The method for interpreting function calls. Checks if it's a built in
+ * function and calls the appropriate function if required. Otherwise searches
+ * for the declared function.
+ *
+ * @param name : The token name of the function being called.
+ * @param args : The arguments as required for the function.
+ * @param env : The current frame for the code being interpreted.
+ * @return : The return value from the function.
+ */
 VALUE *lexical_call_method(TOKEN *name, NODE *args, FRAME *env)
 {
     VALUE *v = lookup_name(name, env);
@@ -96,6 +125,13 @@ VALUE *lexical_call_method(TOKEN *name, NODE *args, FRAME *env)
     return interpret(f->code, newenv);
 }
 
+/**
+ * The function for interpreting the built in print_int function.
+ *
+ * @param args : The argument required by the function, an integer node.
+ * @param frame : The current frame for the code being interpreted.
+ * @return : A NULL pointer.
+ */
 VALUE *print_int(NODE *args, FRAME *frame)
 {
     VALUE *arg = interpret(args, frame);
@@ -108,6 +144,11 @@ VALUE *print_int(NODE *args, FRAME *frame)
     return NULL;
 }
 
+/**
+ * The function for interpreting the built in read_int function.
+ *
+ * @return : A VALUE representing the integer entered on the command line.
+ */
 VALUE *read_int()
 {
     int toReturn;
@@ -124,6 +165,14 @@ VALUE *read_int()
     return new_return(new_int(toReturn));
 }
 
+/**
+ * The main interpret function that is called recursively to traverse the AST.
+ *
+ * @param tree : The current node to interpret.
+ * @param frame : The current frame for the code being interpreted.
+ * @return : A pointer to the VALUE structure constructed from interpreting the
+ *           current node.
+ */
 VALUE *interpret(NODE *tree, FRAME *frame)
 {
     TOKEN *t = (TOKEN *)tree;
