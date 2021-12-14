@@ -35,6 +35,20 @@ LLIST *getParams(NODE *ast)
     }
 }
 
+LLIST *computeLocalsChain(NODE *ast)
+{
+    switch (ast->type) {
+        case ',':
+            return join_llist(computeLocalsChain(ast->left), computeLocalsChain(ast->right));
+        case '=':
+            return computeLocalsChain(ast->left);
+        case LEAF:
+            return new_llist((void*)ast->left);
+        default:
+            return NULL;
+    }
+}
+
 LLIST *getLocals(NODE *ast)
 {
     LLIST *left;
@@ -51,8 +65,7 @@ LLIST *getLocals(NODE *ast)
         case ',':
             return join_llist(getLocals(ast->left), getLocals(ast->right));
         case '~':
-            if (ast->right->type == '=') return getLocals(ast->right->left);
-            return getLocals(ast->right);
+            return computeLocalsChain(ast->right);
         case 'D':
             return new_llist((void*)ast->left->right->left->left);
         case LEAF:
@@ -472,6 +485,7 @@ TAC *mmc_icg(NODE* ast)
             printf("D\n");
             return tac_compute_closure(ast);
         case '~':
+        case ',':
             printf("~\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
@@ -481,8 +495,6 @@ TAC *mmc_icg(NODE* ast)
             } else if (leftLeaf != NULL) return leftLeaf;
             else if (rightLeaf != NULL) return rightLeaf;
             else return NULL;
-//            create_vars(ast->right, frame, ast->left->left->type);
-            return NULL;
         case IDENTIFIER:
             printf("id\n");
             return new_line_tac(tac_load_id, t, NULL, new_temp());
