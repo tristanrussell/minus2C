@@ -17,6 +17,4 @@ VALUE *declare_closure(TOKEN*, FRAME*, NODE*, NODE*, int);
 
 VALUE *declare_name(TOKEN*, FRAME*, int);
 
-void print_names(FRAME*);
-
 #endif //__ENV_H

@@ -19,7 +19,6 @@ NODE* make_node(int t, NODE* left, NODE* right)
 NODE* make_leaf(TOKEN* l)
 {
     NODE *a = (NODE*)malloc(sizeof(NODE));
-/*     printf("make_leaf: %p -> %p\n", l, a); */
     if (a==NULL) {
       perror("Cannot make leaf");
       exit(1);

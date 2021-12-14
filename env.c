@@ -160,16 +160,3 @@ VALUE *declare_closure(TOKEN *name, FRAME *frame, NODE *code, NODE *ids, int typ
     }
     exit(EXIT_FAILURE);
 }
-
-void print_names(FRAME *frame)
-{
-    while (frame != NULL) {
-        BINDING *bindings = frame->bindings;
-        while (bindings != NULL) {
-            printf("%s\n", bindings->name->lexeme);
-            bindings = bindings->next;
-        }
-        printf("\n\n");
-        frame = frame->next;
-    }
-}

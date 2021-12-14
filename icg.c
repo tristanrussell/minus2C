@@ -250,7 +250,6 @@ TAC *tac_compute_while(NODE *ast)
     int count = count_list(locals);
     TAC *blockStart = new_block_tac(count, convert_token_array(locals));
     TAC *blockEnd = new_blockend_tac();
-    printf("here\n");
 
     TAC *r = rightLeaf;
     while (r != NULL) {
@@ -403,7 +402,6 @@ TAC *mmc_icg(NODE* ast)
 
     switch (ast->type) {
         case '%':
-            printf("%%\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             ret = new_line_tac(tac_mod, leftLeaf->args.line.dst, rightLeaf->args.line.dst, new_temp());
@@ -411,7 +409,6 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case '*':
-            printf("*\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             ret = new_line_tac(tac_times, leftLeaf->args.line.dst, rightLeaf->args.line.dst, new_temp());
@@ -419,7 +416,6 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case '+':
-            printf("+\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             ret = new_line_tac(tac_plus, leftLeaf->args.line.dst, rightLeaf->args.line.dst, new_temp());
@@ -427,7 +423,6 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case '-':
-            printf("-\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             ret = new_line_tac(tac_sub, leftLeaf->args.line.dst, rightLeaf->args.line.dst, new_temp());
@@ -435,7 +430,6 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case '/':
-            printf("/\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             ret = new_line_tac(tac_div, leftLeaf->args.line.dst, rightLeaf->args.line.dst, new_temp());
@@ -443,12 +437,10 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case ';':
-            printf(";\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             return prepend_tac(leftLeaf, rightLeaf);
         case '<':
-            printf("<\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             prepend_tac(leftLeaf, rightLeaf);
@@ -456,13 +448,8 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case '=':
-            printf("=\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
-//            assign_name((TOKEN*)leftLeaf, frame, rightLeaf);
-//            if (rightLeaf->op == tac_load_id) {
-//                return new_line_tac(tac_store, rightLeaf->args.line.src1, NULL, leftLeaf->args.line.src1);
-//            } else {
             if (rightLeaf->op == tac_call) {
                 TOKEN *rv = new_token(TEMPORARY);
                 rv->lexeme = "v0";
@@ -472,9 +459,7 @@ TAC *mmc_icg(NODE* ast)
             }
             ret->next = rightLeaf;
             return ret;
-//            }
         case '>':
-            printf(">\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             prepend_tac(leftLeaf, rightLeaf);
@@ -482,11 +467,9 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case 'D':
-            printf("D\n");
             return tac_compute_closure(ast);
         case '~':
         case ',':
-            printf("~\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             if (leftLeaf != NULL && rightLeaf != NULL) {
@@ -496,13 +479,10 @@ TAC *mmc_icg(NODE* ast)
             else if (rightLeaf != NULL) return rightLeaf;
             else return NULL;
         case IDENTIFIER:
-            printf("id\n");
             return new_line_tac(tac_load_id, t, NULL, new_temp());
         case CONSTANT:
-            printf("const\n");
             return new_line_tac(tac_load_const, t, NULL, new_temp());
         case LE_OP:
-            printf("<=\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             prepend_tac(leftLeaf, rightLeaf);
@@ -510,7 +490,6 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case GE_OP:
-            printf(">=\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             prepend_tac(leftLeaf, rightLeaf);
@@ -518,7 +497,6 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case EQ_OP:
-            printf("==\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             prepend_tac(leftLeaf, rightLeaf);
@@ -526,7 +504,6 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case NE_OP:
-            printf("!=\n");
             leftLeaf = mmc_icg(ast->left);
             rightLeaf = mmc_icg(ast->right);
             prepend_tac(leftLeaf, rightLeaf);
@@ -534,39 +511,26 @@ TAC *mmc_icg(NODE* ast)
             ret->next = rightLeaf;
             return ret;
         case INT:
-            printf("int\n");
             return NULL;
         case VOID:
-            printf("void\n");
             return NULL;
         case FUNCTION:
-            printf("function\n");
             return NULL;
-        case APPLY: // Need to implement.
-            printf("apply\n");
+        case APPLY:
             return tac_compute_call(ast);
         case LEAF:
-            printf("leaf\n");
             return mmc_icg(ast->left);
         case IF:
-            printf("if\n");
             return tac_compute_if(ast);
         case ELSE:
-            printf("else\n");
             return NULL;
         case WHILE:
-            printf("while\n");
             return tac_compute_while(ast);
         case CONTINUE:
-            printf("continue\n");
-            // This should be goto L(x), label at start of while loop.
             return new_line_tac(tac_continue, NULL, NULL, NULL);
         case BREAK:
-            printf("break\n");
-            // This should be goto L(y), label just after while loop.
             return new_line_tac(tac_break, NULL, NULL, NULL);
         case RETURN:
-            printf("return\n");
             leftLeaf = mmc_icg(ast->left);
             if (leftLeaf->op == tac_load_id || leftLeaf->op == tac_load_const) {
                 return new_line_tac(tac_return, leftLeaf->args.line.src1, NULL, NULL);
@@ -634,7 +598,6 @@ void add_static_links(TAC *tac)
 {
     TAC *curr = tac;
     AR *ar = globalAR;
-    printf("%d\n", globalAR->localCount);
 
     while (curr->op != tac_endproc && curr->next != NULL) curr = curr->next;
 
