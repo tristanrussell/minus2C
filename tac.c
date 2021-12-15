@@ -132,6 +132,11 @@ TAC *new_blockend_tac()
  */
 TAC *new_call_tac(TOKEN *name, int arity)
 {
+    if (strcmp(name->lexeme, "main") == 0) {
+        printf("Cannot call main function.\n");
+        exit(EXIT_FAILURE);
+    }
+
     TAC *callTac = (TAC*)malloc(sizeof(TAC));
     callTac->op = tac_call;
     callTac->args.call.name = name;

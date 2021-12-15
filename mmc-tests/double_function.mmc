@@ -1,10 +1,14 @@
 /*
  * This test should print 625.
+ *
+ * f(f(x)) could not be used as the compiler cannot yet handle function calls
+ * as arguments.
  */
 
 function twice(function f) {
     int g(int x) {
-        return f(f(x));
+        int y = f(x);
+        return f(y);
     }
     return g;
 }
@@ -17,5 +21,7 @@ int one(int a) {
 int main(void) {
     int x = 5;
     function g = twice(one);
-    return g(x);
+    int y = g(x);
+    print_int(y);
+    return 0;
 }
