@@ -1,0 +1,11 @@
+/*
+ * This test should fail because we cannot call main.
+ */
+
+int main(void) {
+    int x = 3 + 4;
+    print_int(x);
+    main();
+
+    return 0;
+}
