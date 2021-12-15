@@ -131,13 +131,16 @@ int main(int argc, char** argv)
     printf("--C COMPILER\n");
     yyparse();
     tree = ans;
-    printf("parse finished with %p\n", tree);
+    printf("parse finished with %p\n\n", tree);
     if (print) print_tree(tree);
 
     if (interpreter) {
         FRAME *frame = new_frame();
         VALUE *val = interpret(tree, frame);
-        if (val != NULL && val->type == mmcRETURN) printf("\n%d\n\n", val->v.ret->v.integer);
+
+        // Print out the exit code, used in debugging.
+//        if (val != NULL && val->type == mmcRETURN)
+//            printf("\nProcess finished with exit code %d\n\n", val->v.ret->v.integer);
     }
 
     if (tac || machine) {

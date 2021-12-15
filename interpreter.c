@@ -72,7 +72,7 @@ VALUE *create_closure(NODE *tree, FRAME *frame)
     NODE *code = tree->right;
 
     if (dec->type != 'd' || code == NULL) {
-        printf("Error in function declaration.");
+        printf("Error in function declaration.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -81,7 +81,7 @@ VALUE *create_closure(NODE *tree, FRAME *frame)
     NODE *func = dec->right;
 
     if (func->type != 'F') {
-        printf("Error in function declaration.");
+        printf("Error in function declaration.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -89,7 +89,7 @@ VALUE *create_closure(NODE *tree, FRAME *frame)
     NODE *ids = func->right;
 
     if (name == NULL || ids == NULL) {
-        printf("Error in function declaration.");
+        printf("Error in function declaration.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -116,7 +116,7 @@ VALUE *lexical_call_method(TOKEN *name, NODE *args, FRAME *env)
     if (v == NULL || v->type != mmcCLOSURE) {
         if (strcmp(name->lexeme, "print_int") == 0) return print_int(args, env);
         else if (strcmp(name->lexeme, "read_int") == 0) return read_int();
-        printf("Non-existent function called.");
+        printf("Non-existent function called.\n");
         exit(EXIT_FAILURE);
     }
     CLOSURE *f = v->v.closure;

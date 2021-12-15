@@ -154,8 +154,8 @@ TAC* new_line_tac(int op, TOKEN* src1, TOKEN* src2, TOKEN* dst)
 {
     TAC* ans = (TAC*)malloc(sizeof(TAC));
     if (ans==NULL) {
-        printf("Error! memory not allocated.");
-        exit(0);
+        printf("Error! memory not allocated.\n");
+        exit(EXIT_FAILURE);
     }
     ans->op = op;
     ans->args.line.src1 = src1;

@@ -155,7 +155,7 @@ VALUE *declare_name(TOKEN *name, FRAME *frame, int type)
     BINDING *bindings = frame->bindings;
     while (bindings != NULL) {
         if (bindings->name == name) {
-            printf("Error, duplicate variable declaration.");
+            printf("Error, duplicate variable declaration.\n");
             exit(EXIT_FAILURE);
         }
         bindings = bindings->next;
@@ -188,7 +188,7 @@ VALUE *declare_closure(TOKEN *name, FRAME *frame, NODE *code, NODE *ids, int typ
     BINDING *bindings = frame->bindings;
     while (bindings != NULL) {
         if (bindings->name == name) {
-            printf("Error, duplicate function declaration.");
+            printf("Error, duplicate function declaration.\n");
             exit(EXIT_FAILURE);
         }
         bindings = bindings->next;

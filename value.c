@@ -12,7 +12,7 @@ VALUE* new_null(int type)
 {
     VALUE* ans = (VALUE*)malloc(sizeof(VALUE));
     if (ans==NULL) {
-        printf("Error! memory not allocated.");
+        printf("Error! memory not allocated.\n");
         exit(EXIT_FAILURE);
     }
     ans->type = mmcNULL;
@@ -30,7 +30,7 @@ VALUE* new_return(VALUE *val)
 {
     VALUE* ans = (VALUE*)malloc(sizeof(VALUE));
     if (ans==NULL) {
-        printf("Error! memory not allocated.");
+        printf("Error! memory not allocated.\n");
         exit(EXIT_FAILURE);
     }
     ans->type = mmcRETURN;
@@ -48,7 +48,7 @@ VALUE* new_int(int v)
 {
     VALUE* ans = (VALUE*)malloc(sizeof(VALUE));
     if (ans==NULL) {
-        printf("Error! memory not allocated.");
+        printf("Error! memory not allocated.\n");
         exit(EXIT_FAILURE);
     }
     ans->type = mmcINT;
@@ -69,7 +69,7 @@ VALUE *new_closure(FRAME *env, NODE *code)
     VALUE *ans = (VALUE*)malloc(sizeof(VALUE));
     CLOSURE *func = (CLOSURE*)malloc(sizeof(CLOSURE));
     if (ans==NULL || func==NULL) {
-        printf("Error! memory not allocated.");
+        printf("Error! memory not allocated.\n");
         exit(EXIT_FAILURE);
     }
 

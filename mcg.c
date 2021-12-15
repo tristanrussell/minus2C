@@ -93,7 +93,7 @@ MC *mcg_compute_proc(TAC *i, MC *p)
         if (j < 2) sprintf(insn, "sw $a%d, %d($fp)", j + 2, off);
         else if (j < 12) sprintf(insn, "sw $t%d, %d($fp)", j - 2, off);
         else {
-            printf("Too many arguments.");
+            printf("Too many arguments.\n");
             exit(EXIT_FAILURE);
         }
         this = new_mci(insn);
