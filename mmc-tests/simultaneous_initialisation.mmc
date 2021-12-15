@@ -8,8 +8,12 @@
  * 3710
  */
 
+int func(int x, int y) {
+    return x + y;
+}
+
 int main(void) {
-    int x = 3, y = 7, z = 10;
+    int x = 3, y = 7, z = func(3, 7);
 
     print_int(x);
     print_int(y);
