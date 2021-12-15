@@ -1,0 +1,17 @@
+/*
+ * This test should print 120.
+ */
+
+int fact ( int n) {
+    int inner_fact ( int n , int a) {
+        if (n ==0) return a;
+        return inner_fact (n -1 , a* n );
+    }
+    return inner_fact (n ,1);
+}
+
+int main(void) {
+    int x = fact(5);
+    print_int(x);
+    return 0;
+}

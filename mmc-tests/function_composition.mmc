@@ -1,0 +1,23 @@
+/*
+ * This test should print 25.
+ */
+
+function once(function f) {
+    int g(int x) {
+        return f(x);
+    }
+    return g;
+}
+
+int one(int a) {
+    int z = a * a;
+    return z;
+}
+
+int main(void) {
+    int x = 5, y;
+    function g = once(one);
+    y = g(x);
+    print_int(y);
+    return 0;
+}
