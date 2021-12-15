@@ -1,11 +1,14 @@
 /*
+ * Take x as the value given as input.
+ *
  * For this test, the interpreter should print:
  * 3
- * 7
+ * x
  * 10
  *
+ *
  * The MIPS simulator should print:
- * 3710
+ * 3x10
  */
 
 int func(int x, int y) {
@@ -13,7 +16,7 @@ int func(int x, int y) {
 }
 
 int main(void) {
-    int x = 3, y = 7, z = func(3, 7);
+    int x = 3, y = read_int(), z = func(3, 7);
 
     print_int(x);
     print_int(y);
