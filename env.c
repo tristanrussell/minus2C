@@ -132,7 +132,7 @@ VALUE *assign_name(TOKEN *name, FRAME *frame, VALUE *value)
                     bindings->val = value;
                     return value;
                 }
-                printf("Assigning wrong type to variable. Expected:%d Received:%d\n", bindings->val->v.integer, value->type);
+                printf("Assigning wrong type to variable.\n");
                 exit(EXIT_FAILURE);
             }
             bindings = bindings->next;
