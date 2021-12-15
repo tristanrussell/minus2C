@@ -3,11 +3,6 @@
 #define TEMPORARY 300
 #define LABEL 301
 
-//typedef struct tac_queue {
-//    TAC*    start;
-//    TAC*    end;
-//} QUEUE;
-
 enum tac_op
 {
     tac_load_const = 1,
@@ -57,30 +52,6 @@ TAC *new_line_tac(int, TOKEN*, TOKEN*, TOKEN*);
 
 TOKEN *new_temp();
 
-TOKEN *new_arg(int);
-
 TAC *prepend_tac(TAC*, TAC*);
 
 void mmc_print_ic(TAC*, int);
-
-//QUEUE *prepend_queue(TAC*, QUEUE*);
-//
-//QUEUE *append_queue(TAC*, QUEUE*);
-
-//typedef struct call {
-//    TOKEN* name;
-//    int arity;
-//} CALL;
-//
-//typedef struct block {
-//    int nvars;
-//} BLOCK;
-//
-//typedef struct tac {
-//    int         op;
-//    union {
-//        BLOCK block;
-//        CALL call;
-//    } args;
-//    TAC*        next;
-//} TAC;
