@@ -139,6 +139,7 @@ VALUE *assign_name(TOKEN *name, FRAME *frame, VALUE *value)
         }
         frame = frame->next;
     }
+    printf("Assigning value to non-existent variable.\n");
     exit(EXIT_FAILURE);
 }
 

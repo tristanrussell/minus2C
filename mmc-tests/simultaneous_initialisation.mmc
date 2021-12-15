@@ -1,0 +1,19 @@
+/*
+ * For this test, the interpreter should print:
+ * 3
+ * 7
+ * 10
+ *
+ * The MIPS simulator should print:
+ * 3710
+ */
+
+int main(void) {
+    int x = 3, y = 7, z = 10;
+
+    print_int(x);
+    print_int(y);
+    print_int(z);
+
+    return 0;
+}
