@@ -2,16 +2,19 @@
  * This test should print 120.
  */
 
-int fact ( int n) {
-    int inner_fact ( int n , int a) {
-        if (n ==0) return a;
-        return inner_fact (n -1 , a* n );
+int fact (int n) {
+    int inner_fact(int n, int a) {
+        int x = n - 1;
+        int y = a * n;
+        if (n == 0) return a;
+        return inner_fact(x, y);
     }
-    return inner_fact (n ,1);
+    return inner_fact(n, 1);
 }
 
 int main(void) {
-    int x = fact(5);
-    print_int(x);
+    int x = 5, y;
+    y = fact(x);
+    print_int(y);
     return 0;
 }

@@ -19,9 +19,9 @@ int one(int a) {
 }
 
 int main(void) {
-    int x = 5;
+    int x = 5, y;
     function g = twice(one);
-    int y = g(x);
+    y = g(x);
     print_int(y);
     return 0;
 }
