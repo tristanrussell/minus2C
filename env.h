@@ -5,8 +5,6 @@
 
 FRAME *new_frame();
 
-BINDING *make_binding(NODE*, VALUE*, BINDING*);
-
 FRAME *extend_frame(FRAME*, NODE*, NODE*);
 
 VALUE *lookup_name(TOKEN*, FRAME*);
