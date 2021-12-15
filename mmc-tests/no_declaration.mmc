@@ -1,0 +1,10 @@
+/*
+ * This test should fail because x has not been declared.
+ */
+
+int main(void) {
+    x = 3 + 4;
+    print_int(x);
+
+    return 0;
+}

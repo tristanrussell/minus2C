@@ -1,0 +1,23 @@
+/*
+ * This test should fail because g has not been declared.
+ */
+
+function once(function f) {
+    int g(int x) {
+        return f(x);
+    }
+    return g;
+}
+
+int one(int a) {
+    int z = a * a;
+    return z;
+}
+
+int main(void) {
+    int x = 5, y;
+    g = once(one);
+    y = g(x);
+    print_int(y);
+    return 0;
+}

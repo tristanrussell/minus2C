@@ -1,0 +1,26 @@
+/*
+ * This test should fail when interpreted because we are assigning a function
+ * to an integer variable.
+ *
+ * Type checking has not yet been completed for the compiler.
+ */
+
+function once(function f) {
+    int g(int x) {
+        return f(x);
+    }
+    return g;
+}
+
+int one(int a) {
+    int z = a * a;
+    return z;
+}
+
+int main(void) {
+    int x = 5, y;
+    int g = once(one);
+    y = g(x);
+    print_int(y);
+    return 0;
+}
