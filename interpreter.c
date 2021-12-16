@@ -93,7 +93,7 @@ VALUE *create_closure(NODE *tree, FRAME *frame)
         exit(EXIT_FAILURE);
     }
 
-    if (strcmp(name->lexeme, "main") == 0) {
+    if (strcmp(name->lexeme, "main") == 0) { // If this is main then run the function
         FRAME *newFrame = extend_frame(frame, NULL, NULL);
         newFrame->next = frame;
         return interpret(code, newFrame);

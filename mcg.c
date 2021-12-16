@@ -890,6 +890,9 @@ void limit_temps(TAC *tac)
                         append_llist(temps, curr->args.tacif.cond->args.line.dst);
                 }
                 break;
+            // Some of these cases may have temporaries, but they can't have
+            // any new temporaries that aren't already caught by the above
+            // cases.
             case tac_store:
             case tac_return:
             case tac_proc:
@@ -952,6 +955,10 @@ MC *mmc_mcg_bb(BB *bb)
 
     BB *prev = bb;
     BB *curr = bb->next;
+
+    // Reversing the TAC sequence because it is stored as a linked list in
+    // reverse order, this way we can iterate through the instructions rather
+    // than using lots of recursion which will build a large stack.
     for (; curr != NULL; prev = curr, curr = curr->next) {
         prepend_tac(curr->leader, prev->leader);
     }
