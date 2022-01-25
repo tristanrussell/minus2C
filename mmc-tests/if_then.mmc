@@ -1,0 +1,13 @@
+/*
+ * This test should print 1.
+ */
+
+int main(void) {
+    int x = 7;
+
+    if (x < 8) {
+        print_int(1);
+    }
+
+    return 0;
+}

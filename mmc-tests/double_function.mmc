@@ -1,0 +1,27 @@
+/*
+ * This test should print 625.
+ *
+ * f(f(x)) could not be used as the compiler cannot yet handle function calls
+ * as arguments.
+ */
+
+function twice(function f) {
+    int g(int x) {
+        int y = f(x);
+        return f(y);
+    }
+    return g;
+}
+
+int one(int a) {
+    int z = a * a;
+    return z;
+}
+
+int main(void) {
+    int x = 5, y;
+    function g = twice(one);
+    y = g(x);
+    print_int(y);
+    return 0;
+}

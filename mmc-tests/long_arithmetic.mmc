@@ -1,0 +1,22 @@
+/*
+ * For this test, the interpreter should print:
+ * 145
+ * 45
+ * 1
+ *
+ * The MIPS simulator should print:
+ * 145451
+ */
+
+int main(void) {
+    int x = ((4 * 8) + 2 - 9 + (8 / 2)) * 5;
+    print_int(x);
+
+    x = (4 * 8) + 2 - 9 + (8 / 2) * 5;
+    print_int(x);
+
+    x = 5 - 2 * 2;
+    print_int(x);
+
+    return 0;
+}

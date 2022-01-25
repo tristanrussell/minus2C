@@ -1,0 +1,16 @@
+/*
+ * This test should print 7.
+ */
+
+function cplus ( int a ) {
+    int cplusa ( int b ) { return a+b; }
+    return cplusa ;
+}
+
+int main(void) {
+    int x = 2, y = 5, z;
+    function cplusa = cplus(x);
+    z = cplusa(y);
+    print_int(z);
+    return 0;
+}

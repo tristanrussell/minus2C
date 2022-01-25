@@ -1,0 +1,14 @@
+/*
+ * This test should print 39.
+ */
+
+int func (int a, int b, int c) {
+    int d = a * b;
+    return d + c;
+}
+
+int main(void) {
+    int x = func(5, 7, 4);
+    print_int(x);
+    return 0;
+}

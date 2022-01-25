@@ -1,0 +1,30 @@
+/*
+ * For this test, the interpreter should print:
+ * 7
+ * 2
+ * 1
+ * 2
+ * 32
+ *
+ * The MIPS simulator should print:
+ * 721232
+ */
+
+int main(void) {
+    int x = 3 + 4;
+    print_int(x);
+
+    x = 4 / 2;
+    print_int(x);
+
+    x = 4 % 3;
+    print_int(x);
+
+    x = 6 - 4;
+    print_int(x);
+
+    x = 4 * 8;
+    print_int(x);
+
+    return 0;
+}

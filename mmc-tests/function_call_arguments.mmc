@@ -1,0 +1,16 @@
+/*
+ * This interpreter should print 96.
+ *
+ * The compiler cannot yet handle function calls as arguments.
+ */
+
+int func (int a, int b, int c) {
+    int d = a * b;
+    return d + c;
+}
+
+int main(void) {
+    int x = func(func(1,2,3), func(2,7,1), func(8,2,5));
+    print_int(x);
+    return 0;
+}

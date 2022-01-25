@@ -1,0 +1,16 @@
+/*
+ * This interpreter should print 100.
+ *
+ * The compiler cannot yet handle arithmetic as arguments.
+ */
+
+int func (int a, int b, int c) {
+    int d = a * b;
+    return d + c;
+}
+
+int main(void) {
+    int x = func(5 + 2, 7 * 2, 4 - 2);
+    print_int(x);
+    return 0;
+}

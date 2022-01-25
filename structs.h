@@ -7,22 +7,23 @@ typedef struct closure CLOSURE;
 typedef struct value VALUE;
 typedef struct node NODE;
 typedef struct token TOKEN;
-typedef struct label LABEL;
+typedef struct taclabel TACLABEL;
 typedef struct tacif TACIF;
 typedef struct tacgoto TACGOTO;
 typedef struct tac TAC;
 typedef struct bb BB;
+typedef struct ar AR;
 typedef struct mc MC;
 
 typedef struct frame {
-    BINDING*    bindings;
-    FRAME*      next;
+    BINDING*  bindings;
+    FRAME*    next;
 } FRAME;
 
 typedef struct binding {
-    TOKEN*      name;
-    VALUE*      val;
-    BINDING*    next;
+    TOKEN*    name;
+    VALUE*    val;
+    BINDING*  next;
 } BINDING;
 
 typedef struct closure
@@ -31,45 +32,50 @@ typedef struct closure
     NODE*   ids;
     int     type;
     NODE*   code;
-} CLOSURE ;
+} CLOSURE;
 
 typedef struct value
 {
-    int          type;
+    int  type;
     union {
-        int integer;
-        int boolean;
-        char* string;
-        CLOSURE* closure;
+        int       integer;
+        int       boolean;
+        char*     string;
+        CLOSURE*  closure;
+        VALUE*    ret;
     } v;
 } VALUE;
 
 typedef struct node {
-    int          type;
-    struct node *left;
-    struct node *right;
+    int    type;
+    NODE*  left;
+    NODE*  right;
 } NODE;
 
-typedef struct token
-{
-    int           type;
-    char          *lexeme;
-    int           value;
-    TOKEN  *next;
+typedef struct token {
+    int     type;
+    char*   lexeme;
+    int     value;
+    TOKEN*  next;
 } TOKEN;
 
 typedef struct proc {
-    TOKEN* name;
-    int arity;
+    TOKEN*  name;
+    AR*     ar;
 } PROC;
 
+typedef struct endproc {
+    TAC*  start;
+} ENDPROC;
+
 typedef struct block {
-    int nvars;
+    int      nvars;
+    TOKEN**  vars;
 } BLOCK;
 
 typedef struct call {
-    TOKEN* name;
-    int arity;
+    TOKEN*  name;
+    AR*     ar;
 } CALL;
 
 typedef struct line {
@@ -79,11 +85,11 @@ typedef struct line {
 } LINE;
 
 typedef struct taclabel {
-    TOKEN* name;
+    TOKEN*  name;
 } TACLABEL;
 
 typedef struct tacif {
-    TAC*    cond;
+    TAC*       cond;
     TACLABEL*  label;
 } TACIF;
 
@@ -92,27 +98,40 @@ typedef struct tacgoto {
 } TACGOTO;
 
 typedef struct tac {
-    int     op;
+    int  op;
     union {
-        PROC proc;
-        BLOCK block;
-        CALL call;
-        LINE line;
-        TACLABEL taclabel;
-        TACIF tacif;
-        TACGOTO tacgoto;
+        PROC      proc;
+        ENDPROC   endproc;
+        BLOCK     block;
+        CALL      call;
+        LINE      line;
+        TACLABEL  taclabel;
+        TACIF     tacif;
+        TACGOTO   tacgoto;
     } args;
-    TAC*    next;
+    TAC*  next;
 } TAC;
 
 typedef struct bb {
-    TAC*    leader;
-    BB*     next;
+    TAC*  leader;
+    BB*   next;
 } BB;
 
+typedef struct ar {
+    AR*      fp;
+    char     pc;
+    AR*      sl;
+    TOKEN**  param;
+    int      arity;
+    TOKEN**  local;
+    int      localCount;
+    TOKEN**  tmp;
+    int      tmpCount;
+} AR;
+
 typedef struct mc {
-    char* insn;
-    MC* next;
+    char*  insn;
+    MC*    next;
 } MC;
 
 #endif //__STRUCTS_H

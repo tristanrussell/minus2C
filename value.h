@@ -5,11 +5,17 @@
 
 enum valuetype
 {
+    mmcNULL = 0,
     mmcINT = 1,
     mmcBOOL = 2,
     mmcSTRING = 3,
-    mmcCLOSURE = 4
+    mmcCLOSURE = 4,
+    mmcRETURN = 5
 };
+
+VALUE *new_null(int);
+
+VALUE* new_return(VALUE*);
 
 VALUE *new_int(int);
 

@@ -2,30 +2,53 @@
 #include <stdio.h>
 #include "value.h"
 
-//VALUE *empty_value(int type) {
-//    VALUE *v = (VALUE*)malloc(sizeof(VALUE));
-//    v->type = type;
-//    return v;
-//}
-//
-//VALUE *new_value(TOKEN *t) {
-//    VALUE *v = (VALUE*)malloc(sizeof(VALUE));
-//
-//    switch (t->type) {
-//        case CONSTANT:
-//            v->type = INT;
-//            v->v.integer = t->value;
-//            break;
-//    }
-//
-//    return v;
-//}
+/**
+ * Creates a new value and marks it as uninitialised.
+ *
+ * @param type : The type of the variable.
+ * @return : The new uninitialised variable.
+ */
+VALUE* new_null(int type)
+{
+    VALUE* ans = (VALUE*)malloc(sizeof(VALUE));
+    if (ans==NULL) {
+        printf("Error! memory not allocated.\n");
+        exit(EXIT_FAILURE);
+    }
+    ans->type = mmcNULL;
+    ans->v.integer = type;
+    return ans;
+}
 
+/**
+ * Creates a new value of type return.
+ *
+ * @param val : The value being returned.
+ * @return : The return value enclosing the returned value.
+ */
+VALUE* new_return(VALUE *val)
+{
+    VALUE* ans = (VALUE*)malloc(sizeof(VALUE));
+    if (ans==NULL) {
+        printf("Error! memory not allocated.\n");
+        exit(EXIT_FAILURE);
+    }
+    ans->type = mmcRETURN;
+    ans->v.ret = val;
+    return ans;
+}
+
+/**
+ * Creates a new integer value structure.
+ *
+ * @param v : The integer being enclosed in the value structure.
+ * @return : The new value structure.
+ */
 VALUE* new_int(int v)
 {
     VALUE* ans = (VALUE*)malloc(sizeof(VALUE));
     if (ans==NULL) {
-        printf("Error! memory not allocated.");
+        printf("Error! memory not allocated.\n");
         exit(EXIT_FAILURE);
     }
     ans->type = mmcINT;
@@ -33,12 +56,20 @@ VALUE* new_int(int v)
     return ans;
 }
 
+/**
+ * Creates a new closure value structure and creates the proc structure that
+ * the value encloses.
+ *
+ * @param env : The frame of the function.
+ * @param code : The body of code for the function.
+ * @return : The new closure value structure.
+ */
 VALUE *new_closure(FRAME *env, NODE *code)
 {
     VALUE *ans = (VALUE*)malloc(sizeof(VALUE));
     CLOSURE *func = (CLOSURE*)malloc(sizeof(CLOSURE));
     if (ans==NULL || func==NULL) {
-        printf("Error! memory not allocated.");
+        printf("Error! memory not allocated.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -53,6 +84,11 @@ VALUE *new_closure(FRAME *env, NODE *code)
     return ans;
 }
 
+/**
+ * Prints a value to the command line.
+ *
+ * @param v : The value structure to be printed.
+ */
 void mmc_print(VALUE* v)
 {
     if (v==NULL) return;
